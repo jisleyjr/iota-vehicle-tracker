@@ -5,6 +5,18 @@ plugins {
   alias(libs.plugins.roborazzi)
 }
 
+fun envOrDefault(name: String, defaultValue: String): String =
+  System.getenv(name)?.takeIf { it.isNotBlank() } ?: defaultValue
+
+fun releaseVersionCode(): Int {
+  val raw = System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() } ?: return 1
+  val parsed = raw.toIntOrNull()
+  if (parsed == null || parsed !in 1..2_100_000_000) {
+    error("VERSION_CODE must be an integer from 1 to 2100000000, but was '$raw'.")
+  }
+  return parsed
+}
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -13,8 +25,8 @@ android {
     applicationId = "com.aistudio.vehicletracker.qzrjwp"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = releaseVersionCode()
+    versionName = envOrDefault("VERSION_NAME", "1.0")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -24,7 +36,7 @@ android {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
+      keyAlias = envOrDefault("KEY_ALIAS", "upload")
       keyPassword = System.getenv("KEY_PASSWORD")
     }
   }
