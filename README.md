@@ -31,22 +31,81 @@ App bytecode compatibility is Java 11.
 
 ## Release signing
 
-Release builds use the `release` signing config in `app/build.gradle.kts`. The key alias is `upload`. Set these environment variables before `./gradlew assembleRelease`:
+Release builds use the `release` signing config in `app/build.gradle.kts`. The key alias defaults to `upload`. `*.jks` and `*.keystore` files are gitignored. Do not commit the keystore.
+
+### Create the upload keystore once
+
+`keytool` prompts for a keystore password, a key password, and a name. JDK 21 writes a PKCS12 keystore, which has one password: enter the same password both times. Put that password in `STORE_PASSWORD` and in `KEY_PASSWORD`. A different key password is ignored for PKCS12, and the release build then fails when it tries to unlock the key.
+
+```bash
+mkdir -p ~/keys && keytool -genkeypair -v -keystore ~/keys/iota-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Back up `~/keys/iota-upload.jks` and the password outside this repository. Updates only install over an existing copy when they are signed with this same key. If the file or the password is lost, phones that already have the app cannot take an in-place update.
+
+### Build a signed APK locally
 
 | Variable | Purpose |
 | --- | --- |
 | `KEYSTORE_PATH` | Path to the upload keystore. If unset, the build uses `my-upload-key.jks` in the project root. |
 | `STORE_PASSWORD` | Keystore password. |
 | `KEY_PASSWORD` | Key password. |
+| `KEY_ALIAS` | Key alias. If unset, the build uses `upload`. |
+| `VERSION_NAME` | Version name shown on the release. If unset, the build uses `1.0`. |
+| `VERSION_CODE` | Positive integer Android uses to decide whether an APK is an update. If unset, the build uses `1`. |
 
 ```bash
-export KEYSTORE_PATH=/path/to/upload-keystore.jks
+export KEYSTORE_PATH="$HOME/keys/iota-upload.jks"
 export STORE_PASSWORD=your-store-password
 export KEY_PASSWORD=your-key-password
 ./gradlew assembleRelease
 ```
 
-`*.jks` and `*.keystore` files are gitignored.
+The APK is `app/build/outputs/apk/release/app-release.apk`.
+
+### Add the GitHub Actions secrets
+
+The [Release workflow](.github/workflows/release.yml) reads four repository secrets. In GitHub, open **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Value |
+| --- | --- |
+| `KEYSTORE_BASE64` | Base64 text of `~/keys/iota-upload.jks`. |
+| `STORE_PASSWORD` | Keystore password from `keytool`. |
+| `KEY_PASSWORD` | Key password from `keytool`. |
+| `KEY_ALIAS` | `upload` |
+
+On macOS, copy the keystore into the clipboard, then paste it as `KEYSTORE_BASE64`:
+
+```bash
+base64 -i ~/keys/iota-upload.jks | pbcopy
+```
+
+On Linux, print one line and copy that into `KEYSTORE_BASE64`:
+
+```bash
+base64 -w 0 ~/keys/iota-upload.jks
+```
+
+The workflow rejects a run that is missing any of these secrets. It decodes `KEYSTORE_BASE64` to a temp file on the runner and points `KEYSTORE_PATH` at that file. The keystore is not stored in the repository.
+
+### Cut a release
+
+Tag the commit you want to ship and push the tag:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+Pushing a tag that matches `v*` starts the Release workflow. You can also run it by hand: open **Actions → Release → Run workflow** and enter an existing tag such as `v1.0.0`. The workflow checks out that tag, builds a signed release APK, and publishes a GitHub Release with the APK attached and auto-generated release notes.
+
+The published file is named with the tag, for example `iota-vehicle-tracker-v1.0.0.apk`. `versionName` is the tag without the leading `v` (`1.0.0` for `v1.0.0`). `versionCode` is the GitHub Actions run number, so each later run installs over an older release signed with the same keystore. Local builds stay on version name `1.0` and version code `1` unless you set `VERSION_NAME` and `VERSION_CODE`.
+
+### Install the APK on a phone
+
+1. Open the repository **Releases** page after the workflow finishes.
+2. Download `iota-vehicle-tracker-<tag>.apk`.
+3. Open the file on the phone and confirm the install. Android may ask you to allow installs from the browser or the Files app.
+4. To update, download a newer release and open it the same way. Android replaces the installed app when the APK is signed with the same upload key and its version code is higher.
 
 ## Screenshots
 
