@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VehicleTrackerApp() {
+fun VehicleTrackerApp(nowMillis: Long = System.currentTimeMillis()) {
   val context = LocalContext.current
   val db = remember { AppDatabase.getDatabase(context) }
   val repository = remember { VehicleRepository(db.vehicleDao()) }
@@ -425,7 +425,8 @@ fun VehicleTrackerApp() {
         viewModel.addFillUp(tripMiles, gallons, pricePerGallon, odometer, date)
         showAddFillUp = false
         Toast.makeText(context, "Fill-up Saved!", Toast.LENGTH_SHORT).show()
-      }
+      },
+      initialDateMillis = nowMillis
     )
   }
 
@@ -436,7 +437,8 @@ fun VehicleTrackerApp() {
         viewModel.addMaintenance(description, cost, odometer, date, hours)
         showAddMaintenance = false
         Toast.makeText(context, "Servicing logged successfully!", Toast.LENGTH_SHORT).show()
-      }
+      },
+      initialDateMillis = nowMillis
     )
   }
 
@@ -1320,7 +1322,8 @@ fun AddVehicleDialog(
 @Composable
 fun AddFillUpDialog(
   onDismiss: () -> Unit,
-  onSave: (Double, Double, Double, Double?, Long) -> Unit
+  onSave: (Double, Double, Double, Double?, Long) -> Unit,
+  initialDateMillis: Long = System.currentTimeMillis()
 ) {
   var tripMiles by remember { mutableStateOf("") }
   var gallons by remember { mutableStateOf("") }
@@ -1329,6 +1332,7 @@ fun AddFillUpDialog(
   var dateTimestamp by remember {
     mutableStateOf(
       Calendar.getInstance().apply {
+        timeInMillis = initialDateMillis
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
@@ -1472,7 +1476,8 @@ fun AddFillUpDialog(
 @Composable
 fun AddMaintenanceDialog(
   onDismiss: () -> Unit,
-  onSave: (String, Double, Double, Long, Double?) -> Unit
+  onSave: (String, Double, Double, Long, Double?) -> Unit,
+  initialDateMillis: Long = System.currentTimeMillis()
 ) {
   var description by remember { mutableStateOf("") }
   var cost by remember { mutableStateOf("") }
@@ -1481,6 +1486,7 @@ fun AddMaintenanceDialog(
   var dateTimestamp by remember {
     mutableStateOf(
       Calendar.getInstance().apply {
+        timeInMillis = initialDateMillis
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)

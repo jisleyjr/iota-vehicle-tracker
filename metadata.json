@@ -1,8 +1,0 @@
-{
-  "name": "IOTA Vehicle Tracker",
-  "description": "An elegant application to track vehicles, gas fill-ups, fuel efficiency, expenditures, and maintenance logs.",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
