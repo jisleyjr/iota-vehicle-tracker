@@ -127,6 +127,10 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 | --- | --- |
 | <img src="docs/screenshots/add-maintenance.png" alt="Add maintenance dialog" width="240" /> | <img src="docs/screenshots/mpg-history.png" alt="MPG history chart" width="240" /> |
 
-| Import fill-ups |
+| Import fill-ups | Export fill-ups |
+| --- | --- |
+| <img src="docs/screenshots/import-csv-preview.png" alt="Import CSV preview dialog" width="240" /> | <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> |
+
+| CSV menu |
 | --- |
-| <img src="docs/screenshots/import-csv-preview.png" alt="Import CSV preview dialog" width="240" /> |
+| <img src="docs/screenshots/csv-menu.png" alt="CSV menu with Import and Export" width="240" /> |
