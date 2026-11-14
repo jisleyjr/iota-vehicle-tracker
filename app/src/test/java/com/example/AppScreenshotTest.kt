@@ -5,6 +5,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -64,7 +65,8 @@ class AppScreenshotTest {
       hasText("Your Garage is Empty") || hasText("Prius")
     }
     if (hasText("Prius")) {
-      composeTestRule.onNodeWithTag("delete_vehicle_dashboard_button").performClick()
+      composeTestRule.onNodeWithContentDescription("Vehicle options").performClick()
+      composeTestRule.onNodeWithText("Delete vehicle").performClick()
       composeTestRule.onNodeWithText("Delete").performClick()
       composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Your Garage is Empty") }
     }
@@ -201,6 +203,17 @@ class AppScreenshotTest {
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("toyota-camry-2021-fillups.csv") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5 rows · headers: trip,gallons,price,date") }
     captureDialog("export-csv-sheet")
+  }
+
+  @Test
+  fun expandedDashboard() {
+    seedSampleGarage()
+    showApp()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
+    captureRoot("expanded-dashboard")
   }
 
   @Test
