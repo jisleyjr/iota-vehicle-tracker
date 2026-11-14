@@ -114,7 +114,7 @@ class ImportCsvUiTest {
     composeTestRule.onNodeWithTag("export_csv_menu_item").performClick()
     composeTestRule.onNodeWithTag("export_csv_sheet").assertIsDisplayed()
     composeTestRule.onNodeWithText("Export Fill-Ups (CSV)").assertIsDisplayed()
-    composeTestRule.onNodeWithText("toyota-camry-fillups.csv").assertIsDisplayed()
+    composeTestRule.onNodeWithText("toyota-camry-2021-fillups.csv").assertIsDisplayed()
     composeTestRule.onNodeWithText("2 rows · headers: trip,gallons,price,date").assertIsDisplayed()
     composeTestRule.onNodeWithText("Save to Device").assertIsDisplayed()
     composeTestRule.onNodeWithText("Share CSV").assertIsDisplayed()

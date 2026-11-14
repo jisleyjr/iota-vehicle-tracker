@@ -198,7 +198,7 @@ class AppScreenshotTest {
     composeTestRule.onNodeWithTag("csv_menu_button").performClick()
     composeTestRule.onNodeWithTag("export_csv_menu_item").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Export Fill-Ups (CSV)") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("toyota-camry-fillups.csv") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("toyota-camry-2021-fillups.csv") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5 rows · headers: trip,gallons,price,date") }
     captureDialog("export-csv-sheet")
   }

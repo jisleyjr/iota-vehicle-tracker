@@ -377,7 +377,7 @@ fun VehicleTrackerApp(
                       onImportClick = { csvLauncher.launch("*/*") },
                       onExportClick = {
                         val vehicle = selectedVehicle ?: return@CsvActionsButton
-                        exportFileName = FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model)
+                        exportFileName = FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model, vehicle.year)
                         exportCsv = FillUpCsvWriter.write(fillUps)
                         exportRowCount = fillUps.size
                         showExportSheet = true

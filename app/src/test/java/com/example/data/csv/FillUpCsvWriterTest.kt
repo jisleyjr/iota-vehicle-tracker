@@ -120,13 +120,16 @@ class FillUpCsvWriterTest {
   }
 
   @Test
-  fun suggestedFileNameUsesLowercaseMakeAndModel() {
-    assertEquals("toyota-camry-fillups.csv", FillUpCsvWriter.suggestedFileName("Toyota", "Camry"))
+  fun suggestedFileNameUsesLowercaseMakeModelAndYear() {
     assertEquals(
-      "land-rover-range-rover-fillups.csv",
-      FillUpCsvWriter.suggestedFileName("  Land Rover ", "Range Rover")
+      "toyota-camry-2021-fillups.csv",
+      FillUpCsvWriter.suggestedFileName("Toyota", "Camry", 2021)
     )
-    assertEquals("vehicle-fillups.csv", FillUpCsvWriter.suggestedFileName("", "   "))
+    assertEquals(
+      "land-rover-range-rover-2018-fillups.csv",
+      FillUpCsvWriter.suggestedFileName("  Land Rover ", "Range Rover", 2018)
+    )
+    assertEquals("2021-fillups.csv", FillUpCsvWriter.suggestedFileName("", "   ", 2021))
     assertEquals("3 rows · headers: trip,gallons,price,date", FillUpCsvWriter.summaryLabel(3))
     assertEquals("1 row · headers: trip,gallons,price,date", FillUpCsvWriter.summaryLabel(1))
   }

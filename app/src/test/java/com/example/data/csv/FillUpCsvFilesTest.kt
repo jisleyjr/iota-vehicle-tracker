@@ -56,7 +56,7 @@ class FillUpCsvFilesTest {
       )
     )
 
-    val chooser = FillUpCsvFiles.shareIntent(context, "../toyota-camry-fillups.csv", csv)
+    val chooser = FillUpCsvFiles.shareIntent(context, "../toyota-camry-2021-fillups.csv", csv)
 
     assertEquals(Intent.ACTION_CHOOSER, chooser.action)
     assertEquals("Share CSV", chooser.getStringExtra(Intent.EXTRA_TITLE))
@@ -64,13 +64,13 @@ class FillUpCsvFilesTest {
     assertNotNull(send)
     assertEquals(Intent.ACTION_SEND, send!!.action)
     assertEquals("text/csv", send.type)
-    assertEquals("toyota-camry-fillups.csv", send.getStringExtra(Intent.EXTRA_SUBJECT))
+    assertEquals("toyota-camry-2021-fillups.csv", send.getStringExtra(Intent.EXTRA_SUBJECT))
     assertTrue(send.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
     assertTrue(chooser.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
 
-    val cached = File(context.cacheDir, "exports/toyota-camry-fillups.csv")
+    val cached = File(context.cacheDir, "exports/toyota-camry-2021-fillups.csv")
     assertEquals(csv, cached.readText())
-    assertTrue(!File(context.cacheDir, "toyota-camry-fillups.csv").exists())
+    assertTrue(!File(context.cacheDir, "toyota-camry-2021-fillups.csv").exists())
 
     val uri = send.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
     assertNotNull(uri)

@@ -21,8 +21,8 @@ object FillUpCsvWriter {
     return csv.toString()
   }
 
-  fun suggestedFileName(make: String, model: String): String {
-    val slug = "${make.trim()}-${model.trim()}"
+  fun suggestedFileName(make: String, model: String, year: Int): String {
+    val slug = "${make.trim()}-${model.trim()}-$year"
       .lowercase(Locale.US)
       .replace(Regex("[^a-z0-9]+"), "-")
       .trim('-')
