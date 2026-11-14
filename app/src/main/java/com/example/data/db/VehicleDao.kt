@@ -23,6 +23,9 @@ interface VehicleDao {
     @Query("SELECT * FROM fill_ups WHERE vehicleId = :vehicleId ORDER BY date DESC, odometer DESC")
     fun getFillUpsForVehicle(vehicleId: Int): Flow<List<FillUp>>
 
+    @Query("SELECT * FROM fill_ups WHERE vehicleId = :vehicleId")
+    suspend fun getFillUpSnapshot(vehicleId: Int): List<FillUp>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFillUp(fillUp: FillUp): Long
 

@@ -25,6 +25,10 @@ class VehicleRepository(private val vehicleDao: VehicleDao) {
         return vehicleDao.getFillUpsForVehicle(vehicleId)
     }
 
+    suspend fun getFillUpSnapshot(vehicleId: Int): List<FillUp> {
+        return vehicleDao.getFillUpSnapshot(vehicleId)
+    }
+
     suspend fun insertFillUp(fillUp: FillUp): Long {
         return vehicleDao.insertFillUp(fillUp)
     }

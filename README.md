@@ -126,3 +126,7 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 | Log maintenance | Fuel-efficiency history |
 | --- | --- |
 | <img src="docs/screenshots/add-maintenance.png" alt="Add maintenance dialog" width="240" /> | <img src="docs/screenshots/mpg-history.png" alt="MPG history chart" width="240" /> |
+
+| Import fill-ups |
+| --- |
+| <img src="docs/screenshots/import-csv-preview.png" alt="Import CSV preview dialog" width="240" /> |

@@ -12,10 +12,14 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import com.example.data.csv.ExistingFillUp
+import com.example.data.csv.FillUpCsvParseResult
+import com.example.data.csv.FillUpCsvParser
 import com.example.data.db.AppDatabase
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
 import com.example.data.model.Vehicle
+import com.example.ui.PendingCsvImport
 import com.example.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -24,6 +28,7 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -136,6 +141,40 @@ class AppScreenshotTest {
     composeTestRule.onNodeWithTag("service_hours_input").performTextInput("1.0")
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Log Maintenance") }
     captureDialog("add-maintenance")
+  }
+
+  @Test
+  fun importCsvPreviewDialog() {
+    val garage = seedSampleGarage()
+    val csv = """
+      trip,gallons,price,date
+      188.5,11.25,${'$'}3.46,11/01/2026
+      298,9,${'$'}3.71,10/22/2026
+      188.5,10.5,${'$'}3.52,2026-11-01T16:00:00Z
+      142.5,5.1,${'$'}3.65,not-a-date
+    """.trimIndent()
+    val existing = sampleFillUps(garage.camryId).map { ExistingFillUp(it.tripMiles, it.date) }
+    val parsed = FillUpCsvParser.parse(csv, existing)
+    check(parsed is FillUpCsvParseResult.Ok)
+    assertEquals("1 new · 2 duplicates · 1 skipped", parsed.preview.statusLabel())
+    composeTestRule.setContent {
+      MyApplicationTheme(darkTheme = false) {
+        VehicleTrackerApp(
+          nowMillis = utcDate(2026, 11, 13),
+          initialPendingImport = PendingCsvImport(
+            vehicleId = garage.camryId,
+            vehicleLabel = "2021 Toyota Camry",
+            fileName = "camry_fillups.csv",
+            preview = parsed.preview
+          )
+        )
+      }
+    }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import Fill-Ups (CSV)") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import 1 Row") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Duplicate") }
+    captureDialog("import-csv-preview")
   }
 
   @Test
