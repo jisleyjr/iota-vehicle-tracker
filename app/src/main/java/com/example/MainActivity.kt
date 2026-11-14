@@ -53,11 +53,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.csv.FillUpCsvFiles
+import com.example.data.csv.FillUpCsvWriter
 import com.example.data.db.AppDatabase
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
 import com.example.data.model.Vehicle
 import com.example.data.repository.VehicleRepository
+import com.example.ui.ExportCsvSheet
 import com.example.ui.ImportCsvPreviewDialog
 import com.example.ui.PendingCsvImport
 import com.example.ui.theme.MyApplicationTheme
@@ -110,6 +113,10 @@ fun VehicleTrackerApp(
   var showMpgChart by remember { mutableStateOf(false) }
   var showDeleteVehicleConfirmation by remember { mutableStateOf(false) }
   var pendingImport by remember { mutableStateOf(initialPendingImport) }
+  var showExportSheet by remember { mutableStateOf(false) }
+  var exportFileName by remember { mutableStateOf("") }
+  var exportCsv by remember { mutableStateOf("") }
+  var exportRowCount by remember { mutableIntStateOf(0) }
   
   // Tab Selection State
   var activeTab by remember { mutableStateOf(0) } // 0 = Fill-ups, 1 = Maintenance
@@ -151,6 +158,23 @@ fun VehicleTrackerApp(
       }
     } catch (e: Exception) {
       Toast.makeText(context, "Error reading CSV file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+    }
+  }
+  val saveCsvLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.CreateDocument("text/csv")
+  ) { uri ->
+    if (uri == null) return@rememberLauncherForActivityResult
+    val csv = exportCsv
+    val name = exportFileName
+    try {
+      FillUpCsvFiles.writeToUri(context, uri, csv)
+      Toast.makeText(context, "Saved $name", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+      Toast.makeText(
+        context,
+        "Could not save CSV: ${e.localizedMessage ?: "unknown error"}",
+        Toast.LENGTH_LONG
+      ).show()
     }
   }
 
@@ -349,7 +373,15 @@ fun VehicleTrackerApp(
                       color = MaterialTheme.colorScheme.primary
                     )
                     CsvActionsButton(
-                      onImportClick = { csvLauncher.launch("*/*") }
+                      exportEnabled = fillUps.isNotEmpty(),
+                      onImportClick = { csvLauncher.launch("*/*") },
+                      onExportClick = {
+                        val vehicle = selectedVehicle ?: return@CsvActionsButton
+                        exportFileName = FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model, vehicle.year)
+                        exportCsv = FillUpCsvWriter.write(fillUps)
+                        exportRowCount = fillUps.size
+                        showExportSheet = true
+                      }
                     )
                   }
 
@@ -510,10 +542,41 @@ fun VehicleTrackerApp(
       }
     )
   }
+
+  if (showExportSheet) {
+    ExportCsvSheet(
+      fileName = exportFileName,
+      rowCount = exportRowCount,
+      onDismiss = { showExportSheet = false },
+      onSaveToDevice = {
+        val name = exportFileName
+        showExportSheet = false
+        saveCsvLauncher.launch(name)
+      },
+      onShare = {
+        val name = exportFileName
+        val csv = exportCsv
+        showExportSheet = false
+        try {
+          context.startActivity(FillUpCsvFiles.shareIntent(context, name, csv))
+        } catch (e: Exception) {
+          Toast.makeText(
+            context,
+            "Could not share CSV: ${e.localizedMessage ?: "unknown error"}",
+            Toast.LENGTH_LONG
+          ).show()
+        }
+      }
+    )
+  }
 }
 
 @Composable
-private fun CsvActionsButton(onImportClick: () -> Unit) {
+private fun CsvActionsButton(
+  exportEnabled: Boolean,
+  onImportClick: () -> Unit,
+  onExportClick: () -> Unit
+) {
   var expanded by remember { mutableStateOf(false) }
   Box {
     OutlinedButton(
@@ -551,7 +614,21 @@ private fun CsvActionsButton(onImportClick: () -> Unit) {
         },
         modifier = Modifier.testTag("import_csv_menu_item")
       )
-      // Export CSV from issue #3 can be another DropdownMenuItem in this menu.
+      DropdownMenuItem(
+        text = { Text("Export CSV") },
+        enabled = exportEnabled,
+        onClick = {
+          expanded = false
+          onExportClick()
+        },
+        leadingIcon = {
+          Icon(
+            imageVector = Icons.Outlined.FileDownload,
+            contentDescription = null
+          )
+        },
+        modifier = Modifier.testTag("export_csv_menu_item")
+      )
     }
   }
 }

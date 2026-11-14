@@ -23,6 +23,7 @@ import com.example.ui.PendingCsvImport
 import com.example.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
@@ -175,6 +176,31 @@ class AppScreenshotTest {
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import 1 Row") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Duplicate") }
     captureDialog("import-csv-preview")
+  }
+
+  @OptIn(com.github.takahirom.roborazzi.ExperimentalRoborazziApi::class)
+  @Test
+  fun csvMenu() {
+    seedSampleGarage()
+    showApp()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.onNodeWithTag("csv_menu_button").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Export CSV") }
+    composeTestRule.waitForIdle()
+    captureScreenRoboImage(filePath = screenshotPath("csv-menu"))
+  }
+
+  @Test
+  fun exportCsvSheet() {
+    seedSampleGarage()
+    showApp()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.onNodeWithTag("csv_menu_button").performClick()
+    composeTestRule.onNodeWithTag("export_csv_menu_item").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Export Fill-Ups (CSV)") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("toyota-camry-2021-fillups.csv") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5 rows · headers: trip,gallons,price,date") }
+    captureDialog("export-csv-sheet")
   }
 
   @Test

@@ -26,3 +26,5 @@ cp app/src/test/screenshots/*.png docs/screenshots/
 | `add-maintenance.png` | The Log Maintenance dialog, filled with an oil change, cost, odometer, and hours. |
 | `mpg-history.png` | The MPG History chart for the Camry's fill-ups. |
 | `import-csv-preview.png` | The import preview for `camry_fillups.csv`: new rows, duplicates of saved and earlier rows, and a row whose date could not be parsed. |
+| `csv-menu.png` | The Fuel Logs `CSV` menu open on the Camry, with Import CSV and Export CSV. |
+| `export-csv-sheet.png` | The export sheet for `toyota-camry-2021-fillups.csv`, with Save to Device and Share CSV. |
