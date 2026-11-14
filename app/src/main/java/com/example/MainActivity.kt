@@ -1,7 +1,10 @@
 package com.example
 
 import android.app.DatePickerDialog
+import android.content.Context
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -55,6 +58,8 @@ import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
 import com.example.data.model.Vehicle
 import com.example.data.repository.VehicleRepository
+import com.example.ui.ImportCsvPreviewDialog
+import com.example.ui.PendingCsvImport
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.VehicleViewModel
 import com.example.ui.viewmodel.VehicleStats
@@ -81,7 +86,10 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VehicleTrackerApp(nowMillis: Long = System.currentTimeMillis()) {
+fun VehicleTrackerApp(
+  nowMillis: Long = System.currentTimeMillis(),
+  initialPendingImport: PendingCsvImport? = null
+) {
   val context = LocalContext.current
   val db = remember { AppDatabase.getDatabase(context) }
   val repository = remember { VehicleRepository(db.vehicleDao()) }
@@ -101,6 +109,7 @@ fun VehicleTrackerApp(nowMillis: Long = System.currentTimeMillis()) {
   var showAddMaintenance by remember { mutableStateOf(false) }
   var showMpgChart by remember { mutableStateOf(false) }
   var showDeleteVehicleConfirmation by remember { mutableStateOf(false) }
+  var pendingImport by remember { mutableStateOf(initialPendingImport) }
   
   // Tab Selection State
   var activeTab by remember { mutableStateOf(0) } // 0 = Fill-ups, 1 = Maintenance
@@ -110,25 +119,38 @@ fun VehicleTrackerApp(nowMillis: Long = System.currentTimeMillis()) {
   val csvLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.GetContent()
   ) { uri ->
-    uri?.let {
-      try {
-        contentResolver.openInputStream(it)?.use { inputStream ->
-          val text = inputStream.bufferedReader().use { reader -> reader.readText() }
-          coroutineScope.launch {
-            val result = viewModel.importFillUpsFromCsv(text)
-            result.fold(
-              onSuccess = { count ->
-                Toast.makeText(context, "Successfully imported $count fill-ups!", Toast.LENGTH_LONG).show()
-              },
-              onFailure = { error ->
-                Toast.makeText(context, "Import failed: ${error.localizedMessage}", Toast.LENGTH_LONG).show()
-              }
-            )
-          }
-        }
-      } catch (e: Exception) {
-        Toast.makeText(context, "Error reading CSV file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+    if (uri == null) return@rememberLauncherForActivityResult
+    val fileName = csvDisplayName(context, uri)
+    try {
+      val text = contentResolver.openInputStream(uri)?.use { inputStream ->
+        inputStream.bufferedReader(Charsets.UTF_8).use { reader -> reader.readText() }
       }
+      if (text == null) {
+        Toast.makeText(context, "Error reading CSV file", Toast.LENGTH_SHORT).show()
+        return@rememberLauncherForActivityResult
+      }
+      coroutineScope.launch {
+        val result = viewModel.previewFillUpImport(text)
+        result.fold(
+          onSuccess = { ready ->
+            pendingImport = PendingCsvImport(
+              vehicleId = ready.vehicleId,
+              vehicleLabel = ready.vehicleLabel,
+              fileName = fileName,
+              preview = ready.preview
+            )
+          },
+          onFailure = { error ->
+            Toast.makeText(
+              context,
+              "Import failed: ${error.message ?: "Could not read that CSV."}",
+              Toast.LENGTH_LONG
+            ).show()
+          }
+        )
+      }
+    } catch (e: Exception) {
+      Toast.makeText(context, "Error reading CSV file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
     }
   }
 
@@ -326,31 +348,16 @@ fun VehicleTrackerApp(nowMillis: Long = System.currentTimeMillis()) {
                       fontWeight = FontWeight.Bold,
                       color = MaterialTheme.colorScheme.primary
                     )
-                    OutlinedButton(
-                      onClick = { csvLauncher.launch("*/*") },
-                      shape = RoundedCornerShape(8.dp),
-                      contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                      modifier = Modifier.height(34.dp).testTag("import_csv_button")
-                    ) {
-                      Icon(
-                        imageVector = Icons.Default.ArrowUpward,
-                        contentDescription = "Import CSV Icon",
-                        modifier = Modifier.size(16.dp)
-                      )
-                      Spacer(modifier = Modifier.width(6.dp))
-                      Text(
-                        text = "Import CSV",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                      )
-                    }
+                    CsvActionsButton(
+                      onImportClick = { csvLauncher.launch("*/*") }
+                    )
                   }
 
                   if (fillUps.isEmpty()) {
                     Box(modifier = Modifier.weight(1f)) {
                       EmptyLogsState(
                         title = "No Fuel Logs",
-                        subtitle = "Tap '+ Add Fill-Up' below or choose 'Import CSV' to load fuel logs.",
+                        subtitle = "Tap '+ Add Fill-Up' below or choose Import CSV from the CSV menu.",
                         icon = Icons.Outlined.LocalGasStation
                       )
                     }
@@ -475,6 +482,88 @@ fun VehicleTrackerApp(nowMillis: Long = System.currentTimeMillis()) {
       )
     }
   }
+
+  pendingImport?.let { pending ->
+    ImportCsvPreviewDialog(
+      vehicleLabel = pending.vehicleLabel,
+      fileName = pending.fileName,
+      preview = pending.preview,
+      onDismiss = { pendingImport = null },
+      onImport = {
+        val request = pending
+        pendingImport = null
+        coroutineScope.launch {
+          val result = viewModel.commitFillUpImport(request.vehicleId, request.preview)
+          result.fold(
+            onSuccess = { summary ->
+              Toast.makeText(context, summary.message(), Toast.LENGTH_LONG).show()
+            },
+            onFailure = { error ->
+              Toast.makeText(
+                context,
+                "Import failed: ${error.message ?: "Could not save those fill-ups."}",
+                Toast.LENGTH_LONG
+              ).show()
+            }
+          )
+        }
+      }
+    )
+  }
+}
+
+@Composable
+private fun CsvActionsButton(onImportClick: () -> Unit) {
+  var expanded by remember { mutableStateOf(false) }
+  Box {
+    OutlinedButton(
+      onClick = { expanded = true },
+      shape = RoundedCornerShape(8.dp),
+      contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+      modifier = Modifier.height(34.dp).testTag("csv_menu_button")
+    ) {
+      Text(
+        text = "CSV",
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold
+      )
+      Icon(
+        imageVector = Icons.Filled.ArrowDropDown,
+        contentDescription = "Open CSV menu",
+        modifier = Modifier.size(18.dp)
+      )
+    }
+    DropdownMenu(
+      expanded = expanded,
+      onDismissRequest = { expanded = false }
+    ) {
+      DropdownMenuItem(
+        text = { Text("Import CSV") },
+        onClick = {
+          expanded = false
+          onImportClick()
+        },
+        leadingIcon = {
+          Icon(
+            imageVector = Icons.Outlined.FileUpload,
+            contentDescription = null
+          )
+        },
+        modifier = Modifier.testTag("import_csv_menu_item")
+      )
+      // Export CSV from issue #3 can be another DropdownMenuItem in this menu.
+    }
+  }
+}
+
+private fun csvDisplayName(context: Context, uri: Uri): String {
+  context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+    if (index >= 0 && cursor.moveToFirst()) {
+      cursor.getString(index)?.takeIf { it.isNotBlank() }?.let { return it }
+    }
+  }
+  return uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() } ?: "fill-ups.csv"
 }
 
 // --- SUB-COMPONENTS ---
@@ -1632,6 +1721,10 @@ fun CustomDialogEnvelope(
   title: String,
   onDismiss: () -> Unit,
   onSave: () -> Unit,
+  saveButtonText: String = "Save details",
+  saveEnabled: Boolean = true,
+  saveButtonTag: String? = null,
+  subtitle: String? = null,
   content: @Composable ColumnScope.() -> Unit
 ) {
   Dialog(
@@ -1658,6 +1751,16 @@ fun CustomDialogEnvelope(
           color = MaterialTheme.colorScheme.onBackground
         )
 
+        if (!subtitle.isNullOrBlank()) {
+          Spacer(modifier = Modifier.height(2.dp))
+          Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(
@@ -1679,9 +1782,11 @@ fun CustomDialogEnvelope(
           Spacer(modifier = Modifier.width(8.dp))
           Button(
             onClick = onSave,
-            shape = RoundedCornerShape(10.dp)
+            enabled = saveEnabled,
+            shape = RoundedCornerShape(10.dp),
+            modifier = if (saveButtonTag != null) Modifier.testTag(saveButtonTag) else Modifier
           ) {
-            Text("Save details", fontWeight = FontWeight.Bold)
+            Text(saveButtonText, fontWeight = FontWeight.Bold)
           }
         }
       }

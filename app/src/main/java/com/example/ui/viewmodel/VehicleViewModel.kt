@@ -3,6 +3,11 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.data.csv.ExistingFillUp
+import com.example.data.csv.FillUpCsvParseResult
+import com.example.data.csv.FillUpCsvPreview
+import com.example.data.csv.FillUpCsvParser
+import com.example.data.csv.importResultMessage
 import com.example.data.model.Vehicle
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
@@ -11,6 +16,19 @@ import com.example.BuildConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
+data class ReadyFillUpImport(
+    val vehicleId: Int,
+    val vehicleLabel: String,
+    val preview: FillUpCsvPreview
+)
+
+data class ImportCommitResult(
+    val imported: Int,
+    val duplicatesSkipped: Int
+) {
+    fun message(): String = importResultMessage(imported, duplicatesSkipped)
+}
 
 data class VehicleStats(
     val averageMpg: Double = 0.0,
@@ -168,81 +186,58 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
         }
     }
 
-    suspend fun importFillUpsFromCsv(csvText: String): Result<Int> {
-        val vehicleId = selectedVehicleId.value ?: return Result.failure(Exception("No vehicle selected"))
-        val lines = csvText.lines()
-        var importedCount = 0
-
-        try {
-            lines.forEach { line ->
-                val trimmedLine = line.trim()
-                if (trimmedLine.isBlank()) return@forEach
-                
-                val separator = if (trimmedLine.contains(";")) ";" else ","
-                val parts = trimmedLine.split(separator).map { it.trim().trim('"', '\'') }
-
-                val isHeader = parts.any {
-                    it.contains("miles", ignoreCase = true) ||
-                    it.contains("gallon", ignoreCase = true) ||
-                    it.contains("price", ignoreCase = true) ||
-                    it.contains("date", ignoreCase = true)
-                }
-                if (isHeader) return@forEach
-
-                if (parts.size >= 4) {
-                    val tripMiles = parts[0].toDoubleOrNull()
-                    val gallons = parts[1].toDoubleOrNull()
-                    val pricePerGallon = parts[2].toDoubleOrNull()
-                    val dateStr = parts[3]
-
-                    val dateLong = parseDate(dateStr) ?: System.currentTimeMillis()
-
-                    if (tripMiles != null && gallons != null && pricePerGallon != null) {
-                        repository.insertFillUp(
-                            FillUp(
-                                vehicleId = vehicleId,
-                                tripMiles = tripMiles,
-                                gallons = gallons,
-                                pricePerGallon = pricePerGallon,
-                                odometer = null,
-                                date = dateLong
-                            )
-                        )
-                        importedCount++
-                    }
-                }
-            }
-            return Result.success(importedCount)
-        } catch (e: Exception) {
-            return Result.failure(e)
+    suspend fun previewFillUpImport(csvText: String): Result<ReadyFillUpImport> {
+        val vehicleId = selectedVehicleId.value
+            ?: return Result.failure(IllegalStateException("No vehicle selected"))
+        val vehicle = allVehicles.value.find { it.id == vehicleId }
+            ?: repository.getVehicleById(vehicleId)
+            ?: return Result.failure(IllegalStateException("No vehicle selected"))
+        val existing = repository.getFillUpSnapshot(vehicleId).map {
+            ExistingFillUp(tripMiles = it.tripMiles, dateMillis = it.date)
+        }
+        return when (val parsed = FillUpCsvParser.parse(csvText, existing)) {
+            is FillUpCsvParseResult.Error -> Result.failure(IllegalArgumentException(parsed.message))
+            is FillUpCsvParseResult.Ok -> Result.success(
+                ReadyFillUpImport(
+                    vehicleId = vehicle.id,
+                    vehicleLabel = "${vehicle.year} ${vehicle.make} ${vehicle.model}",
+                    preview = parsed.preview
+                )
+            )
         }
     }
 
-    private fun parseDate(dateStr: String): Long? {
-        val longVal = dateStr.toLongOrNull()
-        if (longVal != null) return longVal
-
-        val formats = listOf(
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd",
-            "MM/dd/yyyy HH:mm:ss",
-            "MM/dd/yyyy",
-            "dd-MM-yyyy",
-            "yyyy/MM/dd",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss"
-        )
-        for (format in formats) {
-            try {
-                val sdf = java.text.SimpleDateFormat(format, java.util.Locale.US)
-                sdf.isLenient = false
-                return sdf.parse(dateStr)?.time
-            } catch (e: Exception) {
-                // keep trying
+    suspend fun commitFillUpImport(vehicleId: Int, preview: FillUpCsvPreview): Result<ImportCommitResult> {
+        return try {
+            var imported = 0
+            for (draft in preview.importableDrafts()) {
+                repository.insertFillUp(
+                    FillUp(
+                        vehicleId = vehicleId,
+                        tripMiles = draft.tripMiles,
+                        gallons = draft.gallons,
+                        pricePerGallon = draft.pricePerGallon,
+                        odometer = null,
+                        date = draft.dateMillis
+                    )
+                )
+                imported++
             }
+            Result.success(
+                ImportCommitResult(
+                    imported = imported,
+                    duplicatesSkipped = preview.duplicateCount
+                )
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        return null
+    }
+
+    suspend fun importFillUpsFromCsv(csvText: String): Result<Int> {
+        val ready = previewFillUpImport(csvText).getOrElse { return Result.failure(it) }
+        val committed = commitFillUpImport(ready.vehicleId, ready.preview).getOrElse { return Result.failure(it) }
+        return Result.success(committed.imported)
     }
 
     companion object {

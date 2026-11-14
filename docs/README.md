@@ -18,10 +18,11 @@ cp app/src/test/screenshots/*.png docs/screenshots/
 | File | What it shows |
 | --- | --- |
 | `empty-garage.png` | Garage with no vehicles: the add-vehicle card and the empty-state prompt. |
-| `garage-fill-ups.png` | Both vehicles, the Camry efficiency dashboard (MPG, fuel cost, service cost, mileage), and the gas fill-up list. |
+| `garage-fill-ups.png` | Both vehicles, the Camry efficiency dashboard (MPG, fuel cost, service cost, mileage), and the gas fill-up list. The Fuel Logs header has a CSV menu. |
 | `maintenance-log.png` | The same Camry dashboard on the Service Logs tab, with brake pads, tire rotation, and an oil change. |
 | `empty-fuel-logs.png` | The Outback selected, with an empty efficiency summary and the "No Fuel Logs" state. |
 | `add-vehicle.png` | The Add Vehicle Details dialog, filled with a 2016 Honda Civic. |
 | `add-fill-up.png` | The Log Gas Fill-Up dialog, filled with trip miles, gallons, price, and odometer. |
 | `add-maintenance.png` | The Log Maintenance dialog, filled with an oil change, cost, odometer, and hours. |
 | `mpg-history.png` | The MPG History chart for the Camry's fill-ups. |
+| `import-csv-preview.png` | The import preview for `camry_fillups.csv`: new rows, duplicates of saved and earlier rows, and a row whose date could not be parsed. |
