@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.launch
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -31,15 +32,19 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -111,7 +116,6 @@ fun VehicleTrackerApp(
   var showAddFillUp by remember { mutableStateOf(false) }
   var showAddMaintenance by remember { mutableStateOf(false) }
   var showMpgChart by remember { mutableStateOf(false) }
-  var showDeleteVehicleConfirmation by remember { mutableStateOf(false) }
   var pendingImport by remember { mutableStateOf(initialPendingImport) }
   var showExportSheet by remember { mutableStateOf(false) }
   var exportFileName by remember { mutableStateOf("") }
@@ -335,8 +339,7 @@ fun VehicleTrackerApp(
           // 2x3 Grid/Column layout for high fidelity diagnostics
           VehicleDashboardStats(
             stats = stats,
-            onStatsClick = { showMpgChart = true },
-            onDeleteClick = { showDeleteVehicleConfirmation = true }
+            onStatsClick = { showMpgChart = true }
           )
 
           Spacer(modifier = Modifier.height(16.dp))
@@ -487,34 +490,6 @@ fun VehicleTrackerApp(
       onDismiss = { showMpgChart = false }
     )
   }
-
-  if (showDeleteVehicleConfirmation) {
-    selectedVehicle?.let { vehicle ->
-      AlertDialog(
-        onDismissRequest = { showDeleteVehicleConfirmation = false },
-        title = { Text("Delete Vehicle?") },
-        text = { Text("This will permanently remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from your garage along with all logged fill-ups and maintenance history.") },
-        confirmButton = {
-          Button(
-            onClick = {
-              viewModel.deleteVehicle(vehicle)
-              showDeleteVehicleConfirmation = false
-              Toast.makeText(context, "${vehicle.make} deleted", Toast.LENGTH_SHORT).show()
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-          ) {
-            Text("Delete")
-          }
-        },
-        dismissButton = {
-          TextButton(onClick = { showDeleteVehicleConfirmation = false }) {
-            Text("Cancel")
-          }
-        }
-      )
-    }
-  }
-
   pendingImport?.let { pending ->
     ImportCsvPreviewDialog(
       vehicleLabel = pending.vehicleLabel,
@@ -654,6 +629,7 @@ fun VehicleGarageCard(
   onDelete: () -> Unit
 ) {
   var showConfirmDelete by remember { mutableStateOf(false) }
+  var showOverflowMenu by remember { mutableStateOf(false) }
 
   Card(
     modifier = Modifier
@@ -708,12 +684,59 @@ fun VehicleGarageCard(
           }
 
           if (isSelected) {
-            Icon(
-              imageVector = Icons.Default.CheckCircle,
-              contentDescription = "Active Indicator",
-              tint = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(20.dp)
-            )
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+              Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Active Indicator",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+              )
+              Box {
+                IconButton(
+                  onClick = { showOverflowMenu = true },
+                  modifier = Modifier
+                    .size(24.dp)
+                    .testTag("vehicle_overflow_${vehicle.id}")
+                ) {
+                  Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Vehicle options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                  )
+                }
+                DropdownMenu(
+                  expanded = showOverflowMenu,
+                  onDismissRequest = { showOverflowMenu = false },
+                  shape = RoundedCornerShape(16.dp),
+                  containerColor = MaterialTheme.colorScheme.surface
+                ) {
+                  DropdownMenuItem(
+                    text = {
+                      Text(
+                        text = "Delete vehicle",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold
+                      )
+                    },
+                    leadingIcon = {
+                      Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                      )
+                    },
+                    onClick = {
+                      showOverflowMenu = false
+                      showConfirmDelete = true
+                    }
+                  )
+                }
+              }
+            }
           } else {
             IconButton(
               onClick = { showConfirmDelete = true },
@@ -861,9 +884,15 @@ fun EmptyGarageState(onAddClick: () -> Unit) {
 @Composable
 fun VehicleDashboardStats(
   stats: VehicleStats,
-  onStatsClick: () -> Unit,
-  onDeleteClick: () -> Unit
+  onStatsClick: () -> Unit
 ) {
+  var expanded by rememberSaveable { mutableStateOf(false) }
+  val chevronRotation by animateFloatAsState(
+    targetValue = if (expanded) 90f else 0f,
+    label = "efficiencyChevronRotation"
+  )
+  val toggleDescription = if (expanded) "Show fewer stats" else "Show more stats"
+
   Card(
     modifier = Modifier
       .fillMaxWidth()
@@ -882,13 +911,20 @@ fun VehicleDashboardStats(
         .fillMaxWidth()
         .padding(20.dp)
     ) {
-      // Top row: Efficiency overview & main badge
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Column {
+        Column(
+          modifier = Modifier
+            .weight(1f)
+            .heightIn(min = 48.dp)
+            .testTag("efficiency_toggle")
+            .semantics { contentDescription = toggleDescription }
+            .clickable { expanded = !expanded }
+            .padding(end = 8.dp)
+        ) {
           Text(
             text = "Efficiency".uppercase(),
             style = MaterialTheme.typography.labelSmall,
@@ -897,9 +933,17 @@ fun VehicleDashboardStats(
             letterSpacing = 1.5.sp
           )
           Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
           ) {
+            Icon(
+              imageVector = Icons.Filled.ChevronRight,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier
+                .size(28.dp)
+                .rotate(chevronRotation)
+            )
             Text(
               text = if (stats.averageMpg > 0) String.format(Locale.getDefault(), "%.1f", stats.averageMpg) else "--",
               fontSize = 38.sp,
@@ -910,92 +954,69 @@ fun VehicleDashboardStats(
               text = "MPG",
               fontSize = 14.sp,
               fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+              modifier = Modifier
+                .align(Alignment.Bottom)
+                .padding(bottom = 6.dp)
             )
           }
         }
 
-        Row(
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalAlignment = Alignment.CenterVertically
+        Box(
+          modifier = Modifier
+            .size(48.dp)
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+            .clickable { onStatsClick() }
+            .testTag("stats_icon_button"),
+          contentAlignment = Alignment.Center
         ) {
-          Box(
-            modifier = Modifier
-              .size(48.dp)
-              .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-              .clickable { onDeleteClick() }
-              .testTag("delete_vehicle_dashboard_button"),
-            contentAlignment = Alignment.Center
-          ) {
-            Icon(
-              imageVector = Icons.Default.Delete,
-              contentDescription = "Delete Vehicle",
-              tint = MaterialTheme.colorScheme.error,
-              modifier = Modifier.size(24.dp)
-            )
-          }
-
-          Box(
-            modifier = Modifier
-              .size(48.dp)
-              .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-              .clickable { onStatsClick() }
-              .testTag("stats_icon_button"),
-            contentAlignment = Alignment.Center
-          ) {
-            Icon(
-              imageVector = Icons.Default.Insights,
-              contentDescription = "Stats Icon",
-              tint = MaterialTheme.colorScheme.onPrimary,
-              modifier = Modifier.size(26.dp)
-            )
-          }
+          Icon(
+            imageVector = Icons.Default.Insights,
+            contentDescription = "Stats Icon",
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(26.dp)
+          )
         }
       }
 
-      Spacer(modifier = Modifier.height(16.dp))
-
-      // 2x2 Grid using clean Rows
-      Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-      ) {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(10.dp)
+      AnimatedVisibility(visible = expanded) {
+        Column(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+          verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-          // Total Spent Detail
-          MiniDashboardGridCard(
-            title = "Total Expenditures",
-            value = formatCurrency(stats.overallTotalSpent),
-            modifier = Modifier.weight(1f)
-          )
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+          ) {
+            MiniDashboardGridCard(
+              title = "Total Expenditures",
+              value = formatCurrency(stats.overallTotalSpent),
+              modifier = Modifier.weight(1f)
+            )
+            MiniDashboardGridCard(
+              title = "Current Mileage",
+              value = if (stats.latestOdometer > 0) String.format(Locale.getDefault(), "%,.0f mi", stats.latestOdometer) else "-- mi",
+              modifier = Modifier.weight(1f)
+            )
+          }
 
-          // Latest Odometer Record
-          MiniDashboardGridCard(
-            title = "Current Mileage",
-            value = if (stats.latestOdometer > 0) String.format(Locale.getDefault(), "%,.0f mi", stats.latestOdometer) else "-- mi",
-            modifier = Modifier.weight(1f)
-          )
-        }
-
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-          // Gas component Spent
-          MiniDashboardGridCard(
-            title = "Gas Costs",
-            value = formatCurrency(stats.totalFuelSpent),
-            modifier = Modifier.weight(1f)
-          )
-
-          // Maintenance service spent
-          MiniDashboardGridCard(
-            title = "Service Repairs",
-            value = formatCurrency(stats.totalMaintenanceCost),
-            modifier = Modifier.weight(1f)
-          )
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+          ) {
+            MiniDashboardGridCard(
+              title = "Gas Costs",
+              value = formatCurrency(stats.totalFuelSpent),
+              modifier = Modifier.weight(1f)
+            )
+            MiniDashboardGridCard(
+              title = "Service Repairs",
+              value = formatCurrency(stats.totalMaintenanceCost),
+              modifier = Modifier.weight(1f)
+            )
+          }
         }
       }
     }

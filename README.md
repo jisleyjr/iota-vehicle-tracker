@@ -111,26 +111,26 @@ The published file is named with the tag, for example `iota-vehicle-tracker-v1.0
 
 Captured from the Compose UI with Roborazzi. Descriptions and the regenerate command are in [docs/README.md](docs/README.md).
 
-| Empty garage | Garage, efficiency, and fill-ups |
+| Empty garage | Garage, collapsed efficiency, and fill-ups |
 | --- | --- |
-| <img src="docs/screenshots/empty-garage.png" alt="Empty garage" width="240" /> | <img src="docs/screenshots/garage-fill-ups.png" alt="Garage, fuel efficiency, and fill-ups" width="240" /> |
+| <img src="docs/screenshots/empty-garage.png" alt="Empty garage" width="240" /> | <img src="docs/screenshots/garage-fill-ups.png" alt="Garage, collapsed fuel efficiency, and fill-ups" width="240" /> |
 
-| Maintenance log | Vehicle with no fuel logs |
+| Expanded efficiency | Maintenance log |
 | --- | --- |
-| <img src="docs/screenshots/maintenance-log.png" alt="Maintenance log" width="240" /> | <img src="docs/screenshots/empty-fuel-logs.png" alt="Vehicle with no fuel logs" width="240" /> |
+| <img src="docs/screenshots/expanded-dashboard.png" alt="Expanded efficiency dashboard" width="240" /> | <img src="docs/screenshots/maintenance-log.png" alt="Maintenance log" width="240" /> |
 
-| Add vehicle | Log a fill-up |
+| Vehicle with no fuel logs | Add vehicle |
 | --- | --- |
-| <img src="docs/screenshots/add-vehicle.png" alt="Add vehicle dialog" width="240" /> | <img src="docs/screenshots/add-fill-up.png" alt="Add fill-up dialog" width="240" /> |
+| <img src="docs/screenshots/empty-fuel-logs.png" alt="Vehicle with no fuel logs" width="240" /> | <img src="docs/screenshots/add-vehicle.png" alt="Add vehicle dialog" width="240" /> |
 
-| Log maintenance | Fuel-efficiency history |
+| Log a fill-up | Log maintenance |
 | --- | --- |
-| <img src="docs/screenshots/add-maintenance.png" alt="Add maintenance dialog" width="240" /> | <img src="docs/screenshots/mpg-history.png" alt="MPG history chart" width="240" /> |
+| <img src="docs/screenshots/add-fill-up.png" alt="Add fill-up dialog" width="240" /> | <img src="docs/screenshots/add-maintenance.png" alt="Add maintenance dialog" width="240" /> |
 
-| Import fill-ups | Export fill-ups |
+| Fuel-efficiency history | Import fill-ups |
 | --- | --- |
-| <img src="docs/screenshots/import-csv-preview.png" alt="Import CSV preview dialog" width="240" /> | <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> |
+| <img src="docs/screenshots/mpg-history.png" alt="MPG history chart" width="240" /> | <img src="docs/screenshots/import-csv-preview.png" alt="Import CSV preview dialog" width="240" /> |
 
-| CSV menu |
-| --- |
-| <img src="docs/screenshots/csv-menu.png" alt="CSV menu with Import and Export" width="240" /> |
+| Export fill-ups | CSV menu |
+| --- | --- |
+| <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> | <img src="docs/screenshots/csv-menu.png" alt="CSV menu with Import and Export" width="240" /> |
