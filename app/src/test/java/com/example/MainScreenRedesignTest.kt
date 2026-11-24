@@ -151,9 +151,9 @@ class MainScreenRedesignTest {
   )
 
   private fun sampleMaintenance(vehicleId: Int): List<Maintenance> = listOf(
-    Maintenance(vehicleId = vehicleId, whatWasDone = "Oil change", cost = 64.50, odometer = 83000.0, date = utcDate(2026, 7, 12), hours = null),
-    Maintenance(vehicleId = vehicleId, whatWasDone = "Tire rotation", cost = 40.0, odometer = 84500.0, date = utcDate(2026, 9, 20), hours = null),
-    Maintenance(vehicleId = vehicleId, whatWasDone = "Brake pads", cost = 285.0, odometer = 85100.0, date = utcDate(2026, 10, 28), hours = 1.5)
+    Maintenance(vehicleId = vehicleId, title = "Oil change", cost = 64.50, odometer = 83000.0, date = utcDate(2026, 7, 12), hours = null),
+    Maintenance(vehicleId = vehicleId, title = "Tire rotation", cost = 40.0, odometer = 84500.0, date = utcDate(2026, 9, 20), hours = null),
+    Maintenance(vehicleId = vehicleId, title = "Brake pads", cost = 285.0, odometer = 85100.0, date = utcDate(2026, 10, 28), hours = 1.5)
   )
 
   private fun utcDate(year: Int, month: Int, day: Int): Long {

@@ -1380,7 +1380,7 @@ fun MaintenanceLogCard(
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(
-            text = maintenance.whatWasDone,
+            text = maintenance.title,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurface,

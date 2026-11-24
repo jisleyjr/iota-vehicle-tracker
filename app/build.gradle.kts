@@ -5,6 +5,10 @@ plugins {
   alias(libs.plugins.roborazzi)
 }
 
+ksp {
+  arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 fun envOrDefault(name: String, defaultValue: String): String =
   System.getenv(name)?.takeIf { it.isNotBlank() } ?: defaultValue
 
