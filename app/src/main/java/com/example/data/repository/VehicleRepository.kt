@@ -33,6 +33,10 @@ class VehicleRepository(private val vehicleDao: VehicleDao) {
         return vehicleDao.insertFillUp(fillUp)
     }
 
+    suspend fun updateFillUp(fillUp: FillUp) {
+        vehicleDao.updateFillUp(fillUp)
+    }
+
     suspend fun deleteFillUp(fillUp: FillUp) {
         vehicleDao.deleteFillUp(fillUp)
     }

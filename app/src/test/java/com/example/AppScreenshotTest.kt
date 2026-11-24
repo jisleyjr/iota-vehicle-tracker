@@ -118,6 +118,33 @@ class AppScreenshotTest {
   }
 
   @Test
+  fun editFillUpDialog() {
+    seedSampleGarage()
+    showApp()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.onAllNodesWithText("Edit")[0].performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Fill-up") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Date: 11/06/2026") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Delete fill-up") }
+    captureDialog("edit-fill-up")
+  }
+
+  @Test
+  fun deleteFillUpConfirmation() {
+    seedSampleGarage()
+    showApp()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.onAllNodesWithText("Edit")[0].performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Fill-up") }
+    composeTestRule.onNodeWithTag("delete_fill_up_button").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Delete Fill-up?") }
+    composeTestRule.waitUntil(TIMEOUT_MS) {
+      hasText("Are you sure you want to delete this fill-up? This cannot be undone.")
+    }
+    captureDialog("delete-fill-up-confirm")
+  }
+
+  @Test
   fun addFillUpDialog() {
     seedSampleGarage()
     showApp()
