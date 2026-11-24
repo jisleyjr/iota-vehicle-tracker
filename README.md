@@ -113,19 +113,31 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 
 | Empty garage | Garage, collapsed efficiency, and fill-ups |
 | --- | --- |
-| <img src="docs/screenshots/empty-garage.png" alt="Empty garage" width="240" /> | <img src="docs/screenshots/garage-fill-ups.png" alt="Garage, collapsed fuel efficiency, and fill-ups" width="240" /> |
+| <img src="docs/screenshots/empty-garage.png" alt="Empty garage" width="240" /> | <img src="docs/screenshots/garage-fill-ups.png" alt="Garage, collapsed MPG and last oil change, and fill-ups" width="240" /> |
 
 | Expanded efficiency | Maintenance log |
 | --- | --- |
-| <img src="docs/screenshots/expanded-dashboard.png" alt="Expanded efficiency dashboard" width="240" /> | <img src="docs/screenshots/maintenance-log.png" alt="Maintenance log" width="240" /> |
+| <img src="docs/screenshots/expanded-dashboard.png" alt="Expanded efficiency dashboard with the MPG chart button and last oil change tile" width="240" /> | <img src="docs/screenshots/maintenance-log.png" alt="Typed service logs with tire-set miles and an oil-change indicator" width="240" /> |
 
 | Vehicle with no fuel logs | Add vehicle |
 | --- | --- |
 | <img src="docs/screenshots/empty-fuel-logs.png" alt="Vehicle with no fuel logs" width="240" /> | <img src="docs/screenshots/add-vehicle.png" alt="Add vehicle dialog" width="240" /> |
 
-| Log a fill-up | Log maintenance |
+| Log a fill-up | Edit a fill-up |
 | --- | --- |
-| <img src="docs/screenshots/add-fill-up.png" alt="Add fill-up dialog" width="240" /> | <img src="docs/screenshots/add-maintenance.png" alt="Add maintenance dialog" width="240" /> |
+| <img src="docs/screenshots/add-fill-up.png" alt="Add fill-up dialog" width="240" /> | <img src="docs/screenshots/edit-fill-up.png" alt="Edit fill-up dialog with delete" width="240" /> |
+
+| Delete fill-up confirmation | Log maintenance |
+| --- | --- |
+| <img src="docs/screenshots/delete-fill-up-confirm.png" alt="Delete fill-up confirmation" width="240" /> | <img src="docs/screenshots/add-maintenance.png" alt="Add maintenance dialog with type, description, and hours" width="240" /> |
+
+| Edit maintenance | Delete service record |
+| --- | --- |
+| <img src="docs/screenshots/edit-maintenance.png" alt="Edit maintenance dialog prefilled with a repair" width="240" /> | <img src="docs/screenshots/delete-maintenance.png" alt="Delete service record confirmation" width="240" /> |
+
+| Tire swap | No oil change |
+| --- | --- |
+| <img src="docs/screenshots/add-tire-swap.png" alt="Tire swap form with a tire set picker" width="240" /> | <img src="docs/screenshots/no-oil-change.png" alt="Service logs with no oil change logged" width="240" /> |
 
 | Fuel-efficiency history | Import fill-ups |
 | --- | --- |

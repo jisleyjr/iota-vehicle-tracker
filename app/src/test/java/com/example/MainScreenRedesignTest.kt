@@ -57,6 +57,9 @@ class MainScreenRedesignTest {
     composeTestRule.onNodeWithContentDescription("Show more stats").assertIsDisplayed()
     composeTestRule.onNodeWithContentDescription("Show more stats").assertHeightIsAtLeast(48.dp)
     composeTestRule.onNodeWithText("EFFICIENCY", substring = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("last_oil_change_tile").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Last Oil Change", ignoreCase = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("stats_icon_button").assertDoesNotExist()
     composeTestRule.onNodeWithText("Total Expenditures", ignoreCase = true).assertDoesNotExist()
     composeTestRule.onNodeWithText("Current Mileage", ignoreCase = true).assertDoesNotExist()
     composeTestRule.onNodeWithText("Gas Costs", ignoreCase = true).assertDoesNotExist()
@@ -67,14 +70,12 @@ class MainScreenRedesignTest {
   fun tappingEfficiencyRowExpandsAndCollapses() {
     showSeededGarage()
 
+    composeTestRule.onNodeWithTag("stats_icon_button").assertDoesNotExist()
+    composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
+    composeTestRule.onNodeWithContentDescription("Show fewer stats").assertIsDisplayed()
     composeTestRule.onNodeWithTag("stats_icon_button").performClick()
     composeTestRule.onNodeWithText("MPG History (Last 30)").assertIsDisplayed()
     composeTestRule.onNodeWithContentDescription("Close").performClick()
-    composeTestRule.onNodeWithText("Total Expenditures", ignoreCase = true).assertDoesNotExist()
-    composeTestRule.onNodeWithContentDescription("Show more stats").assertIsDisplayed()
-
-    composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
-    composeTestRule.onNodeWithContentDescription("Show fewer stats").assertIsDisplayed()
     composeTestRule.onNodeWithText("Total Expenditures", ignoreCase = true).assertIsDisplayed()
     composeTestRule.onNodeWithText("Current Mileage", ignoreCase = true).assertIsDisplayed()
     composeTestRule.onNodeWithText("Gas Costs", ignoreCase = true).assertIsDisplayed()
@@ -82,6 +83,7 @@ class MainScreenRedesignTest {
 
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
     composeTestRule.onNodeWithContentDescription("Show more stats").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("stats_icon_button").assertDoesNotExist()
     composeTestRule.onNodeWithText("Total Expenditures", ignoreCase = true).assertDoesNotExist()
     composeTestRule.onNodeWithText("Current Mileage", ignoreCase = true).assertDoesNotExist()
     composeTestRule.onNodeWithText("Gas Costs", ignoreCase = true).assertDoesNotExist()

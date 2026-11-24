@@ -5,6 +5,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
+import com.example.data.model.MaintenanceType
 import com.example.data.model.Vehicle
 import java.util.Calendar
 import java.util.TimeZone
@@ -42,12 +43,14 @@ class ExampleRobolectricTest {
       id = 1,
       vehicleId = 1,
       title = "Oil Change",
+      type = MaintenanceType.OIL_CHANGE,
       cost = 45.0,
       odometer = 12000.0,
       date = System.currentTimeMillis(),
       hours = 12.5
     )
     assertEquals(12.5, maintenance.hours!!, 0.001)
+    assertEquals(MaintenanceType.OIL_CHANGE, maintenance.type)
   }
 
   @Test

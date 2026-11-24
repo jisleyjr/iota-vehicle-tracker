@@ -8,9 +8,18 @@ import com.example.data.csv.FillUpCsvParseResult
 import com.example.data.csv.FillUpCsvPreview
 import com.example.data.csv.FillUpCsvParser
 import com.example.data.csv.importResultMessage
+import com.example.data.maintenance.OilChangeStatus
+import com.example.data.maintenance.TireSetDeleteResult
+import com.example.data.maintenance.computeOilChangeStatus
+import com.example.data.maintenance.currentlyMountedTireSetId
+import com.example.data.maintenance.latestOdometer
+import com.example.data.maintenance.tireSetDeleteResult
+import com.example.data.maintenance.tireSetMileages
+import com.example.data.maintenance.TireSetMileage
 import com.example.data.model.Vehicle
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
+import com.example.data.model.TireSet
 import com.example.data.repository.VehicleRepository
 import com.example.BuildConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -97,6 +106,16 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val tireSets: StateFlow<List<TireSet>> = selectedVehicleId
+        .flatMapLatest { id ->
+            if (id != null) {
+                repository.getTireSetsForVehicle(id)
+            } else {
+                flowOf(emptyList())
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Deriving high-fidelity statistics in real-time
     val selectedVehicleStats: StateFlow<VehicleStats> = combine(fillUps, maintenanceList) { fills, maints ->
         val totalMiles = fills.sumOf { it.tripMiles }
@@ -106,9 +125,7 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
         val fuelSpent = fills.sumOf { it.gallons * it.pricePerGallon }
         val maintenanceSpent = maints.sumOf { it.cost }
 
-        val maxOdometerFromFills = fills.mapNotNull { it.odometer }.maxOrNull() ?: 0.0
-        val maxOdometerFromMaint = maints.maxOfOrNull { it.odometer } ?: 0.0
-        val latestOdo = maxOf(maxOdometerFromFills, maxOdometerFromMaint)
+        val latestOdo = latestOdometer(fills, maints)
 
         VehicleStats(
             averageMpg = avgMpg,
@@ -118,6 +135,18 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
             latestOdometer = latestOdo
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), VehicleStats())
+
+    val oilChangeStatus: StateFlow<OilChangeStatus> = combine(maintenanceList, selectedVehicleStats) { maintenance, stats ->
+        computeOilChangeStatus(maintenance, stats.latestOdometer)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OilChangeStatus.None)
+
+    val tireSetMileage: StateFlow<List<TireSetMileage>> = combine(tireSets, maintenanceList, selectedVehicleStats) { sets, maintenance, stats ->
+        tireSetMileages(sets, maintenance, stats.latestOdometer)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val mountedTireSetId: StateFlow<Int?> = maintenanceList
+        .map { currentlyMountedTireSetId(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun selectVehicle(vehicleId: Int) {
         selectedVehicleId.value = vehicleId
@@ -185,25 +214,61 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
         }
     }
 
-    fun addMaintenance(whatWasDone: String, cost: Double, odometer: Double, date: Long, hours: Double?) {
+    fun addMaintenance(maintenance: Maintenance) {
         val vehicleId = selectedVehicleId.value ?: return
         viewModelScope.launch {
-            repository.insertMaintenance(
-                Maintenance(
-                    vehicleId = vehicleId,
-                    title = whatWasDone,
-                    cost = cost,
-                    odometer = odometer,
-                    date = date,
-                    hours = hours
-                )
-            )
+            repository.insertMaintenance(maintenance.copy(id = 0, vehicleId = vehicleId))
+        }
+    }
+
+    fun updateMaintenance(maintenance: Maintenance) {
+        viewModelScope.launch {
+            repository.updateMaintenance(maintenance)
         }
     }
 
     fun deleteMaintenance(maintenance: Maintenance) {
         viewModelScope.launch {
             repository.deleteMaintenance(maintenance)
+        }
+    }
+
+    fun addTireSet(
+        name: String,
+        brand: String?,
+        size: String?,
+        purchaseDate: Long?,
+        onComplete: (Int) -> Unit = {}
+    ) {
+        val vehicleId = selectedVehicleId.value ?: return
+        viewModelScope.launch {
+            val id = repository.insertTireSet(
+                TireSet(
+                    vehicleId = vehicleId,
+                    name = name.trim(),
+                    brand = brand?.trim()?.ifBlank { null },
+                    size = size?.trim()?.ifBlank { null },
+                    purchaseDate = purchaseDate
+                )
+            )
+            onComplete(id.toInt())
+        }
+    }
+
+    fun updateTireSet(tireSet: TireSet) {
+        viewModelScope.launch {
+            repository.updateTireSet(tireSet)
+        }
+    }
+
+    fun deleteTireSet(tireSet: TireSet, onResult: (TireSetDeleteResult) -> Unit) {
+        viewModelScope.launch {
+            val references = repository.countTireSetReferences(tireSet.id)
+            val result = tireSetDeleteResult(references, tireSet.name)
+            if (result is TireSetDeleteResult.Deleted) {
+                repository.deleteTireSet(tireSet)
+            }
+            onResult(result)
         }
     }
 
