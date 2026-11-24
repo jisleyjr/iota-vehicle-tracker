@@ -21,6 +21,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -1001,6 +1003,7 @@ fun EmptyGarageState(onAddClick: () -> Unit) {
   }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VehicleDashboardStats(
   stats: VehicleStats,
@@ -1034,8 +1037,8 @@ fun VehicleDashboardStats(
     ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Bottom
       ) {
         Column(
           modifier = Modifier
@@ -1044,15 +1047,8 @@ fun VehicleDashboardStats(
             .testTag("efficiency_toggle")
             .semantics { contentDescription = toggleDescription }
             .clickable { expanded = !expanded }
-            .padding(end = 8.dp)
         ) {
-          Text(
-            text = "Efficiency".uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            letterSpacing = 1.5.sp
-          )
+          DashboardStatLabel("Efficiency")
           Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -1069,27 +1065,38 @@ fun VehicleDashboardStats(
               text = if (stats.averageMpg > 0) String.format(Locale.getDefault(), "%.1f", stats.averageMpg) else "--",
               fontSize = 38.sp,
               fontWeight = FontWeight.Black,
-              color = MaterialTheme.colorScheme.onSurfaceVariant
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              softWrap = false
             )
-            Text(
-              text = "MPG",
-              fontSize = 14.sp,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-              modifier = Modifier
-                .align(Alignment.Bottom)
-                .padding(bottom = 6.dp)
-            )
+            DashboardStatUnit("MPG")
           }
         }
 
-        MiniDashboardGridCard(
-          title = "Last Oil Change",
-          value = lastOilChangeMiles,
+        Column(
           modifier = Modifier
-            .widthIn(min = 112.dp)
+            .weight(1f)
             .testTag("last_oil_change_tile")
-        )
+        ) {
+          DashboardStatLabel("Last Oil Change")
+          FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.Bottom
+          ) {
+            Text(
+              text = lastOilChangeMiles,
+              fontSize = oilMilesFontSize(lastOilChangeMiles),
+              fontWeight = FontWeight.Black,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              softWrap = false
+            )
+            if (lastOilChangeMiles != "\u2014") {
+              DashboardStatUnit("Miles")
+            }
+          }
+        }
       }
 
       AnimatedVisibility(visible = expanded) {
@@ -1155,6 +1162,38 @@ fun VehicleDashboardStats(
       }
     }
   }
+}
+
+@Composable
+private fun DashboardStatLabel(text: String) {
+  Text(
+    text = text.uppercase(),
+    style = MaterialTheme.typography.labelSmall,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+    letterSpacing = 1.5.sp,
+    maxLines = 2,
+    overflow = TextOverflow.Ellipsis
+  )
+}
+
+@Composable
+private fun DashboardStatUnit(text: String) {
+  Text(
+    text = text.uppercase(),
+    fontSize = 14.sp,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+    maxLines = 1,
+    softWrap = false,
+    modifier = Modifier.padding(bottom = 6.dp)
+  )
+}
+
+private fun oilMilesFontSize(value: String) = when {
+  value.length >= 7 -> 24.sp
+  value.length >= 6 -> 28.sp
+  else -> 38.sp
 }
 
 @Composable

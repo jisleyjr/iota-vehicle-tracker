@@ -83,7 +83,8 @@ class AppScreenshotTest {
     showApp()
     selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399 miles") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     captureRoot("garage-fill-ups")
   }
 
@@ -329,7 +330,8 @@ class AppScreenshotTest {
     showApp()
     selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399 miles") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
     composeTestRule.onNodeWithTag("stats_icon_button").assertIsDisplayed()

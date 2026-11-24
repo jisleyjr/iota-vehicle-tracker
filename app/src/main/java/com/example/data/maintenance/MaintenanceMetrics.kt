@@ -89,7 +89,7 @@ fun formatOilChangeIndicator(status: OilChangeStatus, locale: Locale = Locale.ge
 fun formatLastOilChangeMiles(status: OilChangeStatus, locale: Locale = Locale.getDefault()): String {
     return when (status) {
         OilChangeStatus.None -> "\u2014"
-        is OilChangeStatus.MilesAgo -> "${formatMiles(status.miles, locale)} miles"
+        is OilChangeStatus.MilesAgo -> formatMiles(status.miles, locale)
     }
 }
 

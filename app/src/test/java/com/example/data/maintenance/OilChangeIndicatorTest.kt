@@ -40,7 +40,7 @@ class OilChangeIndicatorTest {
 
         assertEquals(6000.0, status.miles, 0.001)
         assertEquals("Oil changed 6,000 miles ago", formatOilChangeIndicator(status))
-        assertEquals("6,000 miles", formatLastOilChangeMiles(status))
+        assertEquals("6,000", formatLastOilChangeMiles(status))
     }
 
     @Test
@@ -64,7 +64,7 @@ class OilChangeIndicatorTest {
 
         assertEquals(0.0, status.miles, 0.001)
         assertEquals("Oil changed 0 miles ago", formatOilChangeIndicator(status))
-        assertEquals("0 miles", formatLastOilChangeMiles(status))
+        assertEquals("0", formatLastOilChangeMiles(status))
     }
 
     @Test
