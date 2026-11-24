@@ -116,7 +116,7 @@ class MaintenanceEditTest {
   }
 
   private fun openServiceLogs() {
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Dashboard") }
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
   }

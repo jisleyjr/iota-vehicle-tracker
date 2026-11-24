@@ -17,6 +17,7 @@ import com.example.data.maintenance.tireSetDeleteResult
 import com.example.data.maintenance.tireSetMileages
 import com.example.data.maintenance.TireSetMileage
 import com.example.data.model.Vehicle
+import com.example.data.model.sortedForGarage
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
 import com.example.data.model.TireSet
@@ -51,6 +52,7 @@ data class VehicleStats(
 class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() {
 
     val allVehicles: StateFlow<List<Vehicle>> = repository.allVehicles
+        .map { it.sortedForGarage() }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

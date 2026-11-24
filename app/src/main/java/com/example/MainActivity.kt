@@ -359,7 +359,7 @@ fun VehicleTrackerApp(
         selectedVehicle?.let { activeVehicle ->
           // Metrics & Dashboard Header
           Text(
-            text = "${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model} Dashboard",
+            text = "Dashboard",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 8.dp)

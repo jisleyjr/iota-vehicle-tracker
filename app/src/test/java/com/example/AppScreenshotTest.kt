@@ -81,7 +81,7 @@ class AppScreenshotTest {
   fun garageFillUpsAndEfficiency() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399 miles") }
     captureRoot("garage-fill-ups")
@@ -91,7 +91,7 @@ class AppScreenshotTest {
   fun maintenanceLog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Oil changed 2,399 miles ago") }
@@ -116,7 +116,7 @@ class AppScreenshotTest {
   fun noOilChangeLogged() {
     val garage = seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Fuel Logs") }
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
@@ -130,7 +130,7 @@ class AppScreenshotTest {
   fun deleteMaintenanceConfirmation() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
     composeTestRule.onAllNodesWithText("Edit")[0].performClick()
@@ -149,7 +149,7 @@ class AppScreenshotTest {
   fun editMaintenanceDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
     composeTestRule.onAllNodesWithText("Edit")[0].performClick()
@@ -164,7 +164,7 @@ class AppScreenshotTest {
   fun emptyFuelLogs() {
     val garage = seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Fuel Logs") }
     captureRoot("empty-fuel-logs")
@@ -174,7 +174,7 @@ class AppScreenshotTest {
   fun addVehicleDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("vehicles_row").performScrollToNode(hasTestTag("add_vehicle_card"))
     composeTestRule.onNodeWithTag("add_vehicle_card").performClick()
     composeTestRule.onNodeWithTag("vehicle_make_input").performTextInput("Honda")
@@ -189,7 +189,7 @@ class AppScreenshotTest {
   fun editFillUpDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    selectCamry()
     composeTestRule.onAllNodesWithText("Edit")[0].performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Fill-up") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Date: 11/06/2026") }
@@ -201,7 +201,7 @@ class AppScreenshotTest {
   fun deleteFillUpConfirmation() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    selectCamry()
     composeTestRule.onAllNodesWithText("Edit")[0].performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Fill-up") }
     composeTestRule.onNodeWithTag("delete_fill_up_button").performClick()
@@ -216,7 +216,7 @@ class AppScreenshotTest {
   fun addFillUpDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("add_log_fab").performClick()
     composeTestRule.onNodeWithTag("trip_miles_input").performTextInput("250")
     composeTestRule.onNodeWithTag("gallons_input").performTextInput("8.5")
@@ -230,7 +230,7 @@ class AppScreenshotTest {
   fun addMaintenanceDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.onNodeWithTag("add_log_fab").performClick()
     composeTestRule.onNodeWithTag("service_type_OIL_CHANGE").performClick()
@@ -248,7 +248,7 @@ class AppScreenshotTest {
   fun addTireSwapDialog() {
     val garage = seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
     composeTestRule.onNodeWithTag("add_log_fab").performClick()
@@ -290,7 +290,7 @@ class AppScreenshotTest {
       }
     }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import Fill-Ups (CSV)") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import 1 Row") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Duplicate") }
     captureDialog("import-csv-preview")
@@ -301,6 +301,7 @@ class AppScreenshotTest {
   fun csvMenu() {
     seedSampleGarage()
     showApp()
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     composeTestRule.onNodeWithTag("csv_menu_button").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Export CSV") }
@@ -312,6 +313,7 @@ class AppScreenshotTest {
   fun exportCsvSheet() {
     seedSampleGarage()
     showApp()
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     composeTestRule.onNodeWithTag("csv_menu_button").performClick()
     composeTestRule.onNodeWithTag("export_csv_menu_item").performClick()
@@ -325,7 +327,7 @@ class AppScreenshotTest {
   fun expandedDashboard() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399 miles") }
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
@@ -338,12 +340,19 @@ class AppScreenshotTest {
   fun mpgHistoryChart() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
     composeTestRule.onNodeWithTag("stats_icon_button").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MPG History (Last 30)") }
     captureDialog("mpg-history")
+  }
+
+  private fun selectCamry() {
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Camry") }
+    composeTestRule.onNodeWithText("Camry").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Dashboard") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
   }
 
   private fun showApp() {

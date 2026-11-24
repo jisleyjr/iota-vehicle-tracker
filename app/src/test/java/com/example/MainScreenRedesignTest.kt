@@ -122,9 +122,22 @@ class MainScreenRedesignTest {
         VehicleTrackerApp(nowMillis = utcDate(2026, 11, 13))
       }
     }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Camry") }
+    composeTestRule.onNodeWithText("Camry").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Dashboard") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     return garage
+  }
+
+  @Test
+  fun garageListsVehiclesByDisplayedName() {
+    val garage = showSeededGarage()
+
+    val outbackX = composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}")
+      .fetchSemanticsNode().positionInRoot.x
+    val camryX = composeTestRule.onNodeWithTag("vehicle_card_${garage.camryId}")
+      .fetchSemanticsNode().positionInRoot.x
+    assertTrue(outbackX < camryX)
   }
 
   private fun hasText(text: String): Boolean {
