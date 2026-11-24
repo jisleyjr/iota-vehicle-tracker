@@ -15,12 +15,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -61,9 +61,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.csv.FillUpCsvFiles
 import com.example.data.csv.FillUpCsvWriter
 import com.example.data.db.AppDatabase
+import com.example.data.maintenance.OilChangeStatus
+import com.example.data.maintenance.TireSetDeleteResult
+import com.example.data.maintenance.formatLastOilChangeMiles
+import com.example.data.maintenance.formatOilChangeIndicator
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
+import com.example.data.model.TireSet
 import com.example.data.model.Vehicle
+import com.example.ui.MaintenanceFormDialog
+import com.example.ui.MaintenanceFormResult
+import com.example.ui.ServiceLogsContent
+import com.example.ui.TireSetFormDialog
 import com.example.data.repository.VehicleRepository
 import com.example.ui.ExportCsvSheet
 import com.example.ui.ImportCsvPreviewDialog
@@ -111,12 +120,24 @@ fun VehicleTrackerApp(
   val fillUps by viewModel.fillUps.collectAsStateWithLifecycle()
   val maintenanceList by viewModel.maintenanceList.collectAsStateWithLifecycle()
   val stats by viewModel.selectedVehicleStats.collectAsStateWithLifecycle()
+  val tireSets by viewModel.tireSets.collectAsStateWithLifecycle()
+  val tireSetMileage by viewModel.tireSetMileage.collectAsStateWithLifecycle()
+  val oilStatus by viewModel.oilChangeStatus.collectAsStateWithLifecycle()
+  val mountedTireSetId by viewModel.mountedTireSetId.collectAsStateWithLifecycle()
+  val oilChangeLabel = formatOilChangeIndicator(oilStatus)
+  val oilChangeLogged = oilStatus is OilChangeStatus.MilesAgo
+  val lastOilChangeMiles = formatLastOilChangeMiles(oilStatus)
 
   // Dynamic Dialog states
   var showAddVehicle by remember { mutableStateOf(false) }
   var showAddFillUp by remember { mutableStateOf(false) }
   var editingFillUp by remember { mutableStateOf<FillUp?>(null) }
-  var showAddMaintenance by remember { mutableStateOf(false) }
+  var showMaintenanceEditor by remember { mutableStateOf(false) }
+  var editingMaintenance by remember { mutableStateOf<Maintenance?>(null) }
+  var showTireSetEditor by remember { mutableStateOf(false) }
+  var editingTireSet by remember { mutableStateOf<TireSet?>(null) }
+  var tireSetDeleteMessage by remember { mutableStateOf<String?>(null) }
+  var preferredTireSetId by remember { mutableStateOf<Int?>(null) }
   var showMpgChart by remember { mutableStateOf(false) }
   var pendingImport by remember { mutableStateOf(initialPendingImport) }
   var showExportSheet by remember { mutableStateOf(false) }
@@ -215,7 +236,13 @@ fun VehicleTrackerApp(
       if (selectedVehicle != null) {
         FloatingActionButton(
           onClick = {
-            if (activeTab == 0) showAddFillUp = true else showAddMaintenance = true
+            if (activeTab == 0) {
+              showAddFillUp = true
+            } else {
+              editingMaintenance = null
+              preferredTireSetId = null
+              showMaintenanceEditor = true
+            }
           },
           containerColor = MaterialTheme.colorScheme.primary,
           contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -330,17 +357,9 @@ fun VehicleTrackerApp(
         EmptyGarageState(onAddClick = { showAddVehicle = true })
       } else {
         selectedVehicle?.let { activeVehicle ->
-          // Metrics & Dashboard Header
-          Text(
-            text = "${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model} Dashboard",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-          )
-
-          // 2x3 Grid/Column layout for high fidelity diagnostics
           VehicleDashboardStats(
             stats = stats,
+            lastOilChangeMiles = lastOilChangeMiles,
             onStatsClick = { showMpgChart = true }
           )
 
@@ -415,29 +434,27 @@ fun VehicleTrackerApp(
                 }
               }
               1 -> {
-                if (maintenanceList.isEmpty()) {
-                  EmptyLogsState(
-                    title = "No Service Records",
-                    subtitle = "Tap '+ Add Maintenance' below to record oil changes, inspections, and other service repairs.",
-                    icon = Icons.Outlined.Build
-                  )
-                } else {
-                  LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp),
-                    modifier = Modifier.fillMaxSize()
-                  ) {
-                    items(maintenanceList) { maintenance ->
-                      MaintenanceLogCard(
-                        maintenance = maintenance,
-                        onDeleteClick = {
-                          viewModel.deleteMaintenance(maintenance)
-                          Toast.makeText(context, "Record deleted", Toast.LENGTH_SHORT).show()
-                        }
-                      )
-                    }
+                ServiceLogsContent(
+                  vehicleId = activeVehicle.id,
+                  maintenance = maintenanceList,
+                  tireSetMileage = tireSetMileage,
+                  mountedTireSetId = mountedTireSetId,
+                  oilChangeLabel = oilChangeLabel,
+                  oilChangeLogged = oilChangeLogged,
+                  onEditMaintenance = { record ->
+                    editingMaintenance = record
+                    preferredTireSetId = null
+                    showMaintenanceEditor = true
+                  },
+                  onAddTireSet = {
+                    editingTireSet = null
+                    showTireSetEditor = true
+                  },
+                  onEditTireSet = { set ->
+                    editingTireSet = set
+                    showTireSetEditor = true
                   }
-                }
+                )
               }
             }
           }
@@ -489,15 +506,101 @@ fun VehicleTrackerApp(
     )
   }
 
-  if (showAddMaintenance) {
-    AddMaintenanceDialog(
-      onDismiss = { showAddMaintenance = false },
-      onSave = { description, cost, odometer, date, hours ->
-        viewModel.addMaintenance(description, cost, odometer, date, hours)
-        showAddMaintenance = false
-        Toast.makeText(context, "Servicing logged successfully!", Toast.LENGTH_SHORT).show()
+  if (showMaintenanceEditor) {
+    val recordBeingEdited = editingMaintenance
+    MaintenanceFormDialog(
+      initial = recordBeingEdited,
+      tireSets = tireSets,
+      mountedTireSetId = mountedTireSetId,
+      selectTireSetId = preferredTireSetId,
+      onDismiss = {
+        showMaintenanceEditor = false
+        editingMaintenance = null
+        preferredTireSetId = null
+      },
+      onSave = { result ->
+        saveMaintenance(viewModel, recordBeingEdited, selectedVehicle?.id, result)
+        showMaintenanceEditor = false
+        editingMaintenance = null
+        preferredTireSetId = null
+        Toast.makeText(
+          context,
+          if (recordBeingEdited != null) "Service record updated" else "Servicing logged successfully!",
+          Toast.LENGTH_SHORT
+        ).show()
+      },
+      onDelete = recordBeingEdited?.let { record ->
+        {
+          viewModel.deleteMaintenance(record)
+          showMaintenanceEditor = false
+          editingMaintenance = null
+          preferredTireSetId = null
+          Toast.makeText(context, "Record deleted", Toast.LENGTH_SHORT).show()
+        }
+      },
+      onAddTireSet = {
+        editingTireSet = null
+        showTireSetEditor = true
+      },
+      initialDateMillis = recordBeingEdited?.date ?: nowMillis
+    )
+  }
+
+  if (showTireSetEditor) {
+    TireSetFormDialog(
+      initial = editingTireSet,
+      onDismiss = {
+        showTireSetEditor = false
+        editingTireSet = null
+      },
+      onSave = { result ->
+        val existing = editingTireSet
+        if (existing == null) {
+          viewModel.addTireSet(result.name, result.brand, result.size, result.purchaseDate) { id ->
+            preferredTireSetId = id
+          }
+        } else {
+          viewModel.updateTireSet(
+            existing.copy(
+              name = result.name,
+              brand = result.brand,
+              size = result.size,
+              purchaseDate = result.purchaseDate
+            )
+          )
+        }
+        showTireSetEditor = false
+        editingTireSet = null
+        Toast.makeText(context, "Tire set saved", Toast.LENGTH_SHORT).show()
+      },
+      onDelete = editingTireSet?.let { set ->
+        {
+          viewModel.deleteTireSet(set) { result ->
+            when (result) {
+              is TireSetDeleteResult.Blocked -> tireSetDeleteMessage = result.message
+              TireSetDeleteResult.Deleted -> {
+                showTireSetEditor = false
+                editingTireSet = null
+                Toast.makeText(context, "${set.name} deleted", Toast.LENGTH_SHORT).show()
+              }
+            }
+          }
+        }
       },
       initialDateMillis = nowMillis
+    )
+  }
+
+  tireSetDeleteMessage?.let { message ->
+    AlertDialog(
+      onDismissRequest = { tireSetDeleteMessage = null },
+      title = { Text("Can't delete this tire set") },
+      text = { Text(message) },
+      confirmButton = {
+        TextButton(onClick = { tireSetDeleteMessage = null }) {
+          Text("OK")
+        }
+      }
     )
   }
 
@@ -637,7 +740,6 @@ private fun csvDisplayName(context: Context, uri: Uri): String {
 
 // --- SUB-COMPONENTS ---
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VehicleGarageCard(
   vehicle: Vehicle,
@@ -653,10 +755,7 @@ fun VehicleGarageCard(
       .height(84.dp)
       .width(185.dp)
       .clip(RoundedCornerShape(16.dp))
-      .combinedClickable(
-        onClick = onClick,
-        onLongClick = { showConfirmDelete = true }
-      )
+      .clickable(onClick = onClick)
       .testTag("vehicle_card_${vehicle.id}"),
     colors = CardDefaults.cardColors(
       containerColor = if (isSelected) {
@@ -700,71 +799,60 @@ fun VehicleGarageCard(
             )
           }
 
-          if (isSelected) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+          ) {
+            if (isSelected) {
               Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = "Active Indicator",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
               )
-              Box {
-                IconButton(
-                  onClick = { showOverflowMenu = true },
-                  modifier = Modifier
-                    .size(24.dp)
-                    .testTag("vehicle_overflow_${vehicle.id}")
-                ) {
-                  Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Vehicle options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                  )
-                }
-                DropdownMenu(
-                  expanded = showOverflowMenu,
-                  onDismissRequest = { showOverflowMenu = false },
-                  shape = RoundedCornerShape(16.dp),
-                  containerColor = MaterialTheme.colorScheme.surface
-                ) {
-                  DropdownMenuItem(
-                    text = {
-                      Text(
-                        text = "Delete vehicle",
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold
-                      )
-                    },
-                    leadingIcon = {
-                      Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                      )
-                    },
-                    onClick = {
-                      showOverflowMenu = false
-                      showConfirmDelete = true
-                    }
-                  )
-                }
-              }
             }
-          } else {
-            IconButton(
-              onClick = { showConfirmDelete = true },
-              modifier = Modifier.size(24.dp)
-            ) {
-              Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Delete Vehicle",
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp)
-              )
+            Box {
+              IconButton(
+                onClick = { showOverflowMenu = true },
+                modifier = Modifier
+                  .size(24.dp)
+                  .testTag("vehicle_overflow_${vehicle.id}")
+              ) {
+                Icon(
+                  imageVector = Icons.Default.MoreVert,
+                  contentDescription = "Vehicle options",
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                  modifier = Modifier.size(18.dp)
+                )
+              }
+              DropdownMenu(
+                expanded = showOverflowMenu,
+                onDismissRequest = { showOverflowMenu = false },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.surface
+              ) {
+                DropdownMenuItem(
+                  text = {
+                    Text(
+                      text = "Delete vehicle",
+                      color = MaterialTheme.colorScheme.error,
+                      fontWeight = FontWeight.SemiBold
+                    )
+                  },
+                  leadingIcon = {
+                    Icon(
+                      imageVector = Icons.Default.Delete,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.error
+                    )
+                  },
+                  onClick = {
+                    showOverflowMenu = false
+                    showConfirmDelete = true
+                  },
+                  modifier = Modifier.testTag("delete_vehicle_menu_${vehicle.id}")
+                )
+              }
             }
           }
         }
@@ -809,21 +897,28 @@ fun VehicleGarageCard(
   if (showConfirmDelete) {
     AlertDialog(
       onDismissRequest = { showConfirmDelete = false },
-      title = { Text("Delete Vehicle?") },
-      text = { Text("This will permanently remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from your garage along with all logged fill-ups and maintenance history.") },
+      modifier = Modifier.testTag("delete_vehicle_confirm"),
+      title = { Text("Delete ${vehicle.year} ${vehicle.make} ${vehicle.model}?") },
+      text = {
+        Text("This removes all its fill-ups, service records, and tire sets. This can't be undone.")
+      },
       confirmButton = {
         Button(
           onClick = {
             onDelete()
             showConfirmDelete = false
           },
+          modifier = Modifier.testTag("confirm_delete_vehicle"),
           colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
         ) {
           Text("Delete")
         }
       },
       dismissButton = {
-        TextButton(onClick = { showConfirmDelete = false }) {
+        TextButton(
+          onClick = { showConfirmDelete = false },
+          modifier = Modifier.testTag("cancel_delete_vehicle")
+        ) {
           Text("Cancel")
         }
       }
@@ -898,9 +993,11 @@ fun EmptyGarageState(onAddClick: () -> Unit) {
   }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VehicleDashboardStats(
   stats: VehicleStats,
+  lastOilChangeMiles: String,
   onStatsClick: () -> Unit
 ) {
   var expanded by rememberSaveable { mutableStateOf(false) }
@@ -930,8 +1027,8 @@ fun VehicleDashboardStats(
     ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Bottom
       ) {
         Column(
           modifier = Modifier
@@ -940,15 +1037,8 @@ fun VehicleDashboardStats(
             .testTag("efficiency_toggle")
             .semantics { contentDescription = toggleDescription }
             .clickable { expanded = !expanded }
-            .padding(end = 8.dp)
         ) {
-          Text(
-            text = "Efficiency".uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            letterSpacing = 1.5.sp
-          )
+          DashboardStatLabel("Efficiency")
           Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -965,34 +1055,37 @@ fun VehicleDashboardStats(
               text = if (stats.averageMpg > 0) String.format(Locale.getDefault(), "%.1f", stats.averageMpg) else "--",
               fontSize = 38.sp,
               fontWeight = FontWeight.Black,
-              color = MaterialTheme.colorScheme.onSurfaceVariant
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              softWrap = false
             )
-            Text(
-              text = "MPG",
-              fontSize = 14.sp,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-              modifier = Modifier
-                .align(Alignment.Bottom)
-                .padding(bottom = 6.dp)
-            )
+            DashboardStatUnit("MPG")
           }
         }
 
-        Box(
+        Column(
           modifier = Modifier
-            .size(48.dp)
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-            .clickable { onStatsClick() }
-            .testTag("stats_icon_button"),
-          contentAlignment = Alignment.Center
+            .weight(1f)
+            .testTag("last_oil_change_tile")
         ) {
-          Icon(
-            imageVector = Icons.Default.Insights,
-            contentDescription = "Stats Icon",
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(26.dp)
-          )
+          DashboardStatLabel("Last Oil Change")
+          FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.Bottom
+          ) {
+            Text(
+              text = lastOilChangeMiles,
+              fontSize = oilMilesFontSize(lastOilChangeMiles),
+              fontWeight = FontWeight.Black,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              softWrap = false
+            )
+            if (lastOilChangeMiles != "\u2014") {
+              DashboardStatUnit("Miles")
+            }
+          }
         }
       }
 
@@ -1003,6 +1096,27 @@ fun VehicleDashboardStats(
             .padding(top = 16.dp),
           verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+          ) {
+            Box(
+              modifier = Modifier
+                .size(48.dp)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+                .clickable { onStatsClick() }
+                .testTag("stats_icon_button"),
+              contentAlignment = Alignment.Center
+            ) {
+              Icon(
+                imageVector = Icons.Default.Insights,
+                contentDescription = "Stats Icon",
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(26.dp)
+              )
+            }
+          }
+
           Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1038,6 +1152,38 @@ fun VehicleDashboardStats(
       }
     }
   }
+}
+
+@Composable
+private fun DashboardStatLabel(text: String) {
+  Text(
+    text = text.uppercase(),
+    style = MaterialTheme.typography.labelSmall,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+    letterSpacing = 1.5.sp,
+    maxLines = 2,
+    overflow = TextOverflow.Ellipsis
+  )
+}
+
+@Composable
+private fun DashboardStatUnit(text: String) {
+  Text(
+    text = text.uppercase(),
+    fontSize = 14.sp,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+    maxLines = 1,
+    softWrap = false,
+    modifier = Modifier.padding(bottom = 6.dp)
+  )
+}
+
+private fun oilMilesFontSize(value: String) = when {
+  value.length >= 7 -> 24.sp
+  value.length >= 6 -> 28.sp
+  else -> 38.sp
 }
 
 @Composable
@@ -1321,126 +1467,6 @@ fun FillUpLogCard(
 }
 
 @Composable
-fun MaintenanceLogCard(
-  maintenance: Maintenance,
-  onDeleteClick: () -> Unit
-) {
-  val formattedDate = remember(maintenance.date) { formatDate(maintenance.date) }
-
-  Card(
-    modifier = Modifier.fillMaxWidth(),
-    colors = CardDefaults.cardColors(
-      containerColor = MaterialTheme.colorScheme.surface
-    ),
-    border = androidx.compose.foundation.BorderStroke(
-      width = 1.dp,
-      color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-    ),
-    shape = RoundedCornerShape(12.dp)
-  ) {
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(14.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      // Cost Badge Icon
-      Box(
-        modifier = Modifier
-          .size(54.dp)
-          .background(
-            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-            shape = RoundedCornerShape(10.dp)
-          ),
-        contentAlignment = Alignment.Center
-      ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          Icon(
-            imageVector = Icons.Default.BuildCircle,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(24.dp)
-          )
-          Text(
-            text = "SERVICE",
-            fontWeight = FontWeight.Bold,
-            fontSize = 8.sp,
-            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
-          )
-        }
-      }
-
-      Spacer(modifier = Modifier.width(14.dp))
-
-      // Detailed text
-      Column(modifier = Modifier.weight(1f)) {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Text(
-            text = maintenance.title,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-          )
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(
-            text = formatCurrency(maintenance.cost),
-            fontWeight = FontWeight.Black,
-            fontSize = 15.sp,
-            color = MaterialTheme.colorScheme.secondary
-          )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Text(
-            text = formattedDate,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.outline,
-            fontWeight = FontWeight.Medium
-          )
-          val odoText = "Odo: ${String.format(Locale.getDefault(), "%,.0f", maintenance.odometer)}"
-          val hoursText = maintenance.hours?.let { " · ${String.format(Locale.getDefault(), "%.1f", it)} hrs" } ?: ""
-          Text(
-            text = "$odoText$hoursText",
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.outline,
-            fontWeight = FontWeight.Medium
-          )
-        }
-      }
-
-      Spacer(modifier = Modifier.width(8.dp))
-
-      IconButton(
-        onClick = onDeleteClick,
-        modifier = Modifier.size(36.dp)
-      ) {
-        Icon(
-          imageVector = Icons.Default.DeleteOutline,
-          contentDescription = "Delete Record Entry",
-          tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-          modifier = Modifier.size(20.dp)
-        )
-      }
-    }
-  }
-}
-
-// --- POPUP DIALOG IMPLEMENTATIONS ---
-
-@Composable
 fun AddVehicleDialog(
   onDismiss: () -> Unit,
   onSave: (String, String, Int, String) -> Unit
@@ -1669,7 +1695,6 @@ fun AddFillUpDialog(
 
     Spacer(modifier = Modifier.height(14.dp))
 
-    // Interactive Date Selector
     Row(
       modifier = Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.SpaceBetween,
@@ -1736,156 +1761,29 @@ fun AddFillUpDialog(
   }
 }
 
-@Composable
-fun AddMaintenanceDialog(
-  onDismiss: () -> Unit,
-  onSave: (String, Double, Double, Long, Double?) -> Unit,
-  initialDateMillis: Long = System.currentTimeMillis()
+private fun saveMaintenance(
+  viewModel: VehicleViewModel,
+  existing: Maintenance?,
+  selectedVehicleId: Int?,
+  result: MaintenanceFormResult
 ) {
-  var description by remember { mutableStateOf("") }
-  var cost by remember { mutableStateOf("") }
-  var odometer by remember { mutableStateOf("") }
-  var hours by remember { mutableStateOf("") }
-  var dateTimestamp by remember {
-    mutableStateOf(
-      Calendar.getInstance().apply {
-        timeInMillis = initialDateMillis
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-      }.timeInMillis
-    )
-  }
-
-  var descError by remember { mutableStateOf(false) }
-  var costError by remember { mutableStateOf(false) }
-  var odoError by remember { mutableStateOf(false) }
-  var hoursError by remember { mutableStateOf(false) }
-
-  val context = LocalContext.current
-
-  CustomDialogEnvelope(
-    title = "Log Maintenance",
-    onDismiss = onDismiss,
-    onSave = {
-      val costVal = cost.toDoubleOrNull()
-      val odoVal = odometer.toDoubleOrNull()
-      val hoursVal = if (hours.isNotBlank()) hours.toDoubleOrNull() else null
-
-      descError = description.isBlank()
-      costError = costVal == null || costVal < 0
-      odoError = odoVal == null || odoVal < 0
-      hoursError = hours.isNotBlank() && (hoursVal == null || hoursVal < 0)
-
-      if (!descError && !costError && !odoError && !hoursError) {
-        onSave(description.trim(), costVal!!, odoVal!!, dateTimestamp, hoursVal)
-      }
-    }
-  ) {
-    OutlinedTextField(
-      value = description,
-      onValueChange = {
-        description = it
-        descError = false
-      },
-      label = { Text("What was done? (e.g., Oil Change)") },
-      isError = descError,
-      supportingText = if (descError) { { Text("Maintenance description is required") } } else null,
-      singleLine = false,
-      maxLines = 3,
-      modifier = Modifier.fillMaxWidth().testTag("service_desc_input")
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    OutlinedTextField(
-      value = cost,
-      onValueChange = {
-        cost = it
-        costError = false
-      },
-      label = { Text("Cost ($)") },
-      isError = costError,
-      supportingText = if (costError) { { Text("Enter a valid cost (0 or more)") } } else null,
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-      singleLine = true,
-      modifier = Modifier.fillMaxWidth().testTag("service_cost_input")
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    OutlinedTextField(
-      value = odometer,
-      onValueChange = {
-        odometer = it
-        odoError = false
-      },
-      label = { Text("Odometer Reading") },
-      isError = odoError,
-      supportingText = if (odoError) { { Text("Enter positive odometer") } } else null,
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-      singleLine = true,
-      modifier = Modifier.fillMaxWidth().testTag("service_odo_input")
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    OutlinedTextField(
-      value = hours,
-      onValueChange = {
-        hours = it
-        hoursError = false
-      },
-      label = { Text("Operating Hours (Optional)") },
-      isError = hoursError,
-      supportingText = if (hoursError) { { Text("Enter a valid hours value") } } else null,
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-      singleLine = true,
-      modifier = Modifier.fillMaxWidth().testTag("service_hours_input")
-    )
-
-    Spacer(modifier = Modifier.height(14.dp))
-
-    // Interactive Date Selector
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Text(
-        text = "Date: ${formatDate(dateTimestamp)}",
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold
-      )
-      TextButton(
-        onClick = {
-          val calendar = Calendar.getInstance().apply { timeInMillis = dateTimestamp }
-          DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-              val updateCalendar = Calendar.getInstance().apply {
-                set(Calendar.YEAR, year)
-                set(Calendar.MONTH, month)
-                set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-              }
-              dateTimestamp = updateCalendar.timeInMillis
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-          ).show()
-        }
-      ) {
-        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
-        Spacer(modifier = Modifier.width(6.dp))
-        Text("Change Date")
-      }
-    }
+  val vehicleId = existing?.vehicleId ?: selectedVehicleId ?: return
+  val entry = Maintenance(
+    id = existing?.id ?: 0,
+    vehicleId = vehicleId,
+    title = result.title,
+    cost = result.cost,
+    odometer = result.odometer,
+    date = result.date,
+    hours = result.hours,
+    type = result.type,
+    description = result.description,
+    tireSetId = result.tireSetId
+  )
+  if (existing == null) {
+    viewModel.addMaintenance(entry)
+  } else {
+    viewModel.updateMaintenance(entry)
   }
 }
 

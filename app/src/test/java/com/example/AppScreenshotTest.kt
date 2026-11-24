@@ -1,6 +1,7 @@
 package com.example
 
 import android.content.Context
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -19,6 +21,8 @@ import com.example.data.csv.FillUpCsvParser
 import com.example.data.db.AppDatabase
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
+import com.example.data.model.MaintenanceType
+import com.example.data.model.TireSet
 import com.example.data.model.Vehicle
 import com.example.ui.PendingCsvImport
 import com.example.ui.theme.MyApplicationTheme
@@ -77,8 +81,10 @@ class AppScreenshotTest {
   fun garageFillUpsAndEfficiency() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2399") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     captureRoot("garage-fill-ups")
   }
 
@@ -86,17 +92,94 @@ class AppScreenshotTest {
   fun maintenanceLog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Oil changed 2399 miles ago") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("14,000 mi") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("1,399 mi") }
+    composeTestRule.onNodeWithTag("maintenance_filter_OIL_CHANGE").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5W-30 synthetic") }
+    check(!hasText("Front pads and rotors"))
+    composeTestRule.onNodeWithTag("maintenance_filter_all").performClick()
+    composeTestRule.onNodeWithTag("maintenance_list").performScrollToNode(
+      androidx.compose.ui.test.hasText("Front pads and rotors")
+    )
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Repair") }
+    composeTestRule.onNodeWithTag("maintenance_list").performScrollToNode(
+      androidx.compose.ui.test.hasText("Brake pads")
+    )
     captureRoot("maintenance-log")
+  }
+
+  @Test
+  fun noOilChangeLogged() {
+    val garage = seedSampleGarage()
+    showApp()
+    selectCamry()
+    composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Fuel Logs") }
+    composeTestRule.onNodeWithTag("maintenance_tab").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No oil change logged") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No tire sets yet.") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Service Records") }
+    captureRoot("no-oil-change")
+  }
+
+  @Test
+  fun deleteMaintenanceConfirmation() {
+    seedSampleGarage()
+    showApp()
+    selectCamry()
+    composeTestRule.onNodeWithTag("maintenance_tab").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
+    composeTestRule.onAllNodesWithText("Edit")[0].performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Maintenance") }
+    composeTestRule.onNodeWithTag("delete_maintenance_button").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Delete service record?") }
+    composeTestRule.waitUntil(TIMEOUT_MS) {
+      hasText("Are you sure you want to delete this service record? This cannot be undone.")
+    }
+    captureDialog("delete-maintenance")
+    composeTestRule.onNodeWithText("Cancel").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors") }
+  }
+
+  @Test
+  fun editMaintenanceDialog() {
+    seedSampleGarage()
+    showApp()
+    selectCamry()
+    composeTestRule.onNodeWithTag("maintenance_tab").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
+    composeTestRule.onAllNodesWithText("Edit")[0].performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Maintenance") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("1.5") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Delete service record") }
+    captureDialog("edit-maintenance")
+  }
+
+  @Test
+  fun deleteVehicleConfirmation() {
+    val garage = seedSampleGarage()
+    showApp()
+    selectCamry()
+    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").performClick()
+    composeTestRule.onNodeWithTag("delete_vehicle_menu_${garage.outbackId}").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Delete 2018 Subaru Outback?") }
+    composeTestRule.waitUntil(TIMEOUT_MS) {
+      hasText("This removes all its fill-ups, service records, and tire sets. This can't be undone.")
+    }
+    captureDialog("delete-vehicle-confirm")
   }
 
   @Test
   fun emptyFuelLogs() {
     val garage = seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Fuel Logs") }
     captureRoot("empty-fuel-logs")
@@ -106,7 +189,7 @@ class AppScreenshotTest {
   fun addVehicleDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("vehicles_row").performScrollToNode(hasTestTag("add_vehicle_card"))
     composeTestRule.onNodeWithTag("add_vehicle_card").performClick()
     composeTestRule.onNodeWithTag("vehicle_make_input").performTextInput("Honda")
@@ -121,7 +204,7 @@ class AppScreenshotTest {
   fun editFillUpDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    selectCamry()
     composeTestRule.onAllNodesWithText("Edit")[0].performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Fill-up") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Date: 11/06/2026") }
@@ -133,7 +216,7 @@ class AppScreenshotTest {
   fun deleteFillUpConfirmation() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    selectCamry()
     composeTestRule.onAllNodesWithText("Edit")[0].performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Fill-up") }
     composeTestRule.onNodeWithTag("delete_fill_up_button").performClick()
@@ -148,7 +231,7 @@ class AppScreenshotTest {
   fun addFillUpDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("add_log_fab").performClick()
     composeTestRule.onNodeWithTag("trip_miles_input").performTextInput("250")
     composeTestRule.onNodeWithTag("gallons_input").performTextInput("8.5")
@@ -162,15 +245,36 @@ class AppScreenshotTest {
   fun addMaintenanceDialog() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.onNodeWithTag("add_log_fab").performClick()
-    composeTestRule.onNodeWithTag("service_desc_input").performTextInput("Oil change")
-    composeTestRule.onNodeWithTag("service_cost_input").performTextInput("72.40")
-    composeTestRule.onNodeWithTag("service_odo_input").performTextInput("86000")
-    composeTestRule.onNodeWithTag("service_hours_input").performTextInput("1.0")
+    composeTestRule.onNodeWithTag("service_type_OIL_CHANGE").performClick()
+    composeTestRule.onNodeWithTag("service_title_input").performScrollTo().performTextInput("Oil change")
+    composeTestRule.onNodeWithTag("service_description_input").performScrollTo().performTextInput("5W-30 synthetic")
+    composeTestRule.onNodeWithTag("service_cost_input").performScrollTo().performTextInput("72.40")
+    composeTestRule.onNodeWithTag("service_odo_input").performScrollTo().performTextInput("86000")
+    composeTestRule.onNodeWithTag("service_hours_input").performScrollTo().performTextInput("1.0")
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Log Maintenance") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Operating Hours (Optional)") }
     captureDialog("add-maintenance")
+  }
+
+  @Test
+  fun addTireSwapDialog() {
+    val garage = seedSampleGarage()
+    showApp()
+    selectCamry()
+    composeTestRule.onNodeWithTag("maintenance_tab").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
+    composeTestRule.onNodeWithTag("add_log_fab").performClick()
+    composeTestRule.onNodeWithTag("service_type_TIRE_SWAP").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Choose the set being mounted.") }
+    composeTestRule.onNodeWithTag("tire_set_option_${garage.summerSetId}").performScrollTo().performClick()
+    composeTestRule.onNodeWithTag("service_title_input").performScrollTo().performTextInput("Mount summer tires")
+    composeTestRule.onNodeWithTag("service_description_input").performScrollTo().performTextInput("After winter storage")
+    composeTestRule.onNodeWithTag("service_hours_input").performScrollTo().performTextInput("0.5")
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Summer") }
+    captureDialog("add-tire-swap")
   }
 
   @Test
@@ -201,7 +305,7 @@ class AppScreenshotTest {
       }
     }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import Fill-Ups (CSV)") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Import 1 Row") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Duplicate") }
     captureDialog("import-csv-preview")
@@ -212,6 +316,7 @@ class AppScreenshotTest {
   fun csvMenu() {
     seedSampleGarage()
     showApp()
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     composeTestRule.onNodeWithTag("csv_menu_button").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Export CSV") }
@@ -223,6 +328,7 @@ class AppScreenshotTest {
   fun exportCsvSheet() {
     seedSampleGarage()
     showApp()
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     composeTestRule.onNodeWithTag("csv_menu_button").performClick()
     composeTestRule.onNodeWithTag("export_csv_menu_item").performClick()
@@ -236,10 +342,13 @@ class AppScreenshotTest {
   fun expandedDashboard() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2399") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
+    composeTestRule.onNodeWithTag("stats_icon_button").assertIsDisplayed()
     captureRoot("expanded-dashboard")
   }
 
@@ -247,10 +356,18 @@ class AppScreenshotTest {
   fun mpgHistoryChart() {
     seedSampleGarage()
     showApp()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
+    selectCamry()
+    composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
     composeTestRule.onNodeWithTag("stats_icon_button").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MPG History (Last 30)") }
     captureDialog("mpg-history")
+  }
+
+  private fun selectCamry() {
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Camry") }
+    composeTestRule.onNodeWithText("Camry").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
   }
 
   private fun showApp() {
@@ -261,8 +378,8 @@ class AppScreenshotTest {
     }
   }
 
-  private fun hasText(text: String): Boolean {
-    return composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+  private fun hasText(text: String, substring: Boolean = false): Boolean {
+    return composeTestRule.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
   }
 
   private fun captureRoot(name: String) {
@@ -285,9 +402,27 @@ class AppScreenshotTest {
     val camryId = dao.insertVehicle(
       Vehicle(make = "Toyota", model = "Camry", year = 2021, licensePlate = "CAM4219")
     ).toInt()
+    val summerId = dao.insertTireSet(
+      TireSet(
+        vehicleId = camryId,
+        name = "Summer",
+        brand = "Michelin",
+        size = "225/45R18",
+        purchaseDate = utcDate(2025, 4, 2)
+      )
+    ).toInt()
+    val winterId = dao.insertTireSet(
+      TireSet(
+        vehicleId = camryId,
+        name = "Winter",
+        brand = "Blizzak",
+        size = "225/45R18",
+        purchaseDate = utcDate(2025, 10, 1)
+      )
+    ).toInt()
     sampleFillUps(camryId).forEach { dao.insertFillUp(it) }
-    sampleMaintenance(camryId).forEach { dao.insertMaintenance(it) }
-    SampleGarage(outbackId, camryId)
+    sampleMaintenance(camryId, summerId, winterId).forEach { dao.insertMaintenance(it) }
+    SampleGarage(outbackId, camryId, summerId, winterId)
   }
 
   private fun sampleFillUps(vehicleId: Int): List<FillUp> = listOf(
@@ -298,10 +433,53 @@ class AppScreenshotTest {
     FillUp(vehicleId = vehicleId, tripMiles = 265.0, gallons = 8.2, pricePerGallon = 3.48, odometer = 85399.0, date = utcDate(2026, 11, 6))
   )
 
-  private fun sampleMaintenance(vehicleId: Int): List<Maintenance> = listOf(
-    Maintenance(vehicleId = vehicleId, title = "Oil change", cost = 64.50, odometer = 83000.0, date = utcDate(2026, 7, 12), hours = null),
-    Maintenance(vehicleId = vehicleId, title = "Tire rotation", cost = 40.0, odometer = 84500.0, date = utcDate(2026, 9, 20), hours = null),
-    Maintenance(vehicleId = vehicleId, title = "Brake pads", cost = 285.0, odometer = 85100.0, date = utcDate(2026, 10, 28), hours = 1.5)
+  private fun sampleMaintenance(vehicleId: Int, summerId: Int, winterId: Int): List<Maintenance> = listOf(
+    Maintenance(
+      vehicleId = vehicleId,
+      type = MaintenanceType.TIRE_SWAP,
+      title = "Mounted summer tires",
+      cost = 0.0,
+      odometer = 70000.0,
+      date = utcDate(2026, 4, 1),
+      tireSetId = summerId
+    ),
+    Maintenance(
+      vehicleId = vehicleId,
+      type = MaintenanceType.OIL_CHANGE,
+      title = "Oil change",
+      description = "5W-30 synthetic",
+      cost = 64.50,
+      odometer = 83000.0,
+      date = utcDate(2026, 7, 12)
+    ),
+    Maintenance(
+      vehicleId = vehicleId,
+      type = MaintenanceType.TIRE_SWAP,
+      title = "Swapped to winter tires",
+      cost = 0.0,
+      odometer = 84000.0,
+      date = utcDate(2026, 8, 15),
+      tireSetId = winterId
+    ),
+    Maintenance(
+      vehicleId = vehicleId,
+      type = MaintenanceType.TIRE_ROTATION,
+      title = "Tire rotation",
+      cost = 40.0,
+      odometer = 84500.0,
+      date = utcDate(2026, 9, 20),
+      tireSetId = winterId
+    ),
+    Maintenance(
+      vehicleId = vehicleId,
+      type = MaintenanceType.REPAIR,
+      title = "Brake pads",
+      description = "Front pads and rotors",
+      cost = 285.0,
+      odometer = 85100.0,
+      date = utcDate(2026, 10, 28),
+      hours = 1.5
+    )
   )
 
   private fun utcDate(year: Int, month: Int, day: Int): Long {
@@ -321,7 +499,12 @@ class AppScreenshotTest {
     return AppDatabase.getDatabase(context)
   }
 
-  private data class SampleGarage(val outbackId: Int, val camryId: Int)
+  private data class SampleGarage(
+    val outbackId: Int,
+    val camryId: Int,
+    val summerSetId: Int,
+    val winterSetId: Int
+  )
 
   private companion object {
     const val TIMEOUT_MS = 15_000L

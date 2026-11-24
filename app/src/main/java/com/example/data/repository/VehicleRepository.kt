@@ -1,9 +1,10 @@
 package com.example.data.repository
 
 import com.example.data.db.VehicleDao
-import com.example.data.model.Vehicle
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
+import com.example.data.model.TireSet
+import com.example.data.model.Vehicle
 import kotlinx.coroutines.flow.Flow
 
 class VehicleRepository(private val vehicleDao: VehicleDao) {
@@ -49,7 +50,31 @@ class VehicleRepository(private val vehicleDao: VehicleDao) {
         return vehicleDao.insertMaintenance(maintenance)
     }
 
+    suspend fun updateMaintenance(maintenance: Maintenance) {
+        vehicleDao.updateMaintenance(maintenance)
+    }
+
     suspend fun deleteMaintenance(maintenance: Maintenance) {
         vehicleDao.deleteMaintenance(maintenance)
+    }
+
+    suspend fun countTireSetReferences(tireSetId: Int): Int {
+        return vehicleDao.countTireSetReferences(tireSetId)
+    }
+
+    fun getTireSetsForVehicle(vehicleId: Int): Flow<List<TireSet>> {
+        return vehicleDao.getTireSetsForVehicle(vehicleId)
+    }
+
+    suspend fun insertTireSet(tireSet: TireSet): Long {
+        return vehicleDao.insertTireSet(tireSet)
+    }
+
+    suspend fun updateTireSet(tireSet: TireSet) {
+        vehicleDao.updateTireSet(tireSet)
+    }
+
+    suspend fun deleteTireSet(tireSet: TireSet) {
+        vehicleDao.deleteTireSet(tireSet)
     }
 }

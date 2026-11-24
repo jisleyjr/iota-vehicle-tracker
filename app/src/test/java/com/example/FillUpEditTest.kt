@@ -208,7 +208,6 @@ class FillUpEditTest {
         VehicleTrackerApp(nowMillis = utcDate(2026, 11, 13))
       }
     }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2021 Toyota Camry Dashboard") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
   }
 

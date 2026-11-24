@@ -1,10 +1,15 @@
 package com.example.data.db
 
-import androidx.room.*
-import com.example.data.model.Vehicle
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
 import com.example.data.model.TireSet
+import com.example.data.model.Vehicle
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -48,12 +53,32 @@ interface VehicleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMaintenance(maintenance: Maintenance): Long
 
+    @Update
+    suspend fun updateMaintenance(maintenance: Maintenance)
+
     @Delete
     suspend fun deleteMaintenance(maintenance: Maintenance)
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM maintenance
+        WHERE tireSetId = :tireSetId AND type IN ('TIRE_SWAP', 'TIRE_ROTATION')
+        """
+    )
+    suspend fun countTireSetReferences(tireSetId: Int): Int
+
+    @Query("SELECT * FROM tire_sets WHERE vehicleId = :vehicleId ORDER BY name COLLATE NOCASE ASC, id ASC")
+    fun getTireSetsForVehicle(vehicleId: Int): Flow<List<TireSet>>
 
     @Query("SELECT * FROM tire_sets WHERE vehicleId = :vehicleId ORDER BY name COLLATE NOCASE ASC, id ASC")
     suspend fun getTireSetSnapshot(vehicleId: Int): List<TireSet>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTireSet(tireSet: TireSet): Long
+
+    @Update
+    suspend fun updateTireSet(tireSet: TireSet)
+
+    @Delete
+    suspend fun deleteTireSet(tireSet: TireSet)
 }
