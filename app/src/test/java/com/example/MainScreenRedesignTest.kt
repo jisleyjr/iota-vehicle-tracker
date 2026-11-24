@@ -96,8 +96,9 @@ class MainScreenRedesignTest {
 
     composeTestRule.onNodeWithTag("delete_vehicle_dashboard_button").assertDoesNotExist()
     composeTestRule.onNodeWithTag("dashboard_stats_card").assertIsDisplayed()
-    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").assertDoesNotExist()
-    composeTestRule.onNodeWithContentDescription("Delete Vehicle").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.camryId}").assertIsDisplayed()
+    composeTestRule.onNodeWithContentDescription("Delete Vehicle").assertDoesNotExist()
     composeTestRule.onNodeWithContentDescription("Delete Log Entry").assertDoesNotExist()
     assertTrue(composeTestRule.onAllNodesWithText("Edit").fetchSemanticsNodes().isNotEmpty())
   }
@@ -110,9 +111,33 @@ class MainScreenRedesignTest {
     composeTestRule.onNodeWithTag("vehicle_overflow_${garage.camryId}").performClick()
     composeTestRule.onNodeWithText("Delete vehicle").assertIsDisplayed()
     composeTestRule.onNodeWithText("Delete vehicle").performClick()
-    composeTestRule.onNodeWithText("Delete Vehicle?").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Delete 2021 Toyota Camry?").assertIsDisplayed()
+    composeTestRule.onNodeWithText(
+      "This removes all its fill-ups, service records, and tire sets. This can't be undone."
+    ).assertIsDisplayed()
     composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
     composeTestRule.onNodeWithText("Delete").assertIsDisplayed()
+  }
+
+  @Test
+  fun cancelKeepsTheVehicleAndConfirmDeletesIt() {
+    val garage = showSeededGarage()
+
+    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").performClick()
+    composeTestRule.onNodeWithTag("delete_vehicle_menu_${garage.outbackId}").performClick()
+    composeTestRule.onNodeWithText("Delete 2018 Subaru Outback?").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("cancel_delete_vehicle").performClick()
+    composeTestRule.onNodeWithText("Delete 2018 Subaru Outback?").assertDoesNotExist()
+    composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").performClick()
+    composeTestRule.onNodeWithTag("delete_vehicle_menu_${garage.outbackId}").performClick()
+    composeTestRule.onNodeWithTag("confirm_delete_vehicle").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) {
+      composeTestRule.onAllNodesWithText("Outback").fetchSemanticsNodes().isEmpty()
+    }
+    composeTestRule.onNodeWithTag("vehicle_card_${garage.camryId}").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").assertDoesNotExist()
   }
 
   private fun showSeededGarage(): SampleGarage {

@@ -162,6 +162,20 @@ class AppScreenshotTest {
   }
 
   @Test
+  fun deleteVehicleConfirmation() {
+    val garage = seedSampleGarage()
+    showApp()
+    selectCamry()
+    composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").performClick()
+    composeTestRule.onNodeWithTag("delete_vehicle_menu_${garage.outbackId}").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Delete 2018 Subaru Outback?") }
+    composeTestRule.waitUntil(TIMEOUT_MS) {
+      hasText("This removes all its fill-ups, service records, and tire sets. This can't be undone.")
+    }
+    captureDialog("delete-vehicle-confirm")
+  }
+
+  @Test
   fun emptyFuelLogs() {
     val garage = seedSampleGarage()
     showApp()

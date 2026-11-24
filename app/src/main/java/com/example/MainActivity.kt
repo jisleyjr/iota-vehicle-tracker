@@ -15,11 +15,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -742,7 +740,6 @@ private fun csvDisplayName(context: Context, uri: Uri): String {
 
 // --- SUB-COMPONENTS ---
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VehicleGarageCard(
   vehicle: Vehicle,
@@ -758,10 +755,7 @@ fun VehicleGarageCard(
       .height(84.dp)
       .width(185.dp)
       .clip(RoundedCornerShape(16.dp))
-      .combinedClickable(
-        onClick = onClick,
-        onLongClick = { showConfirmDelete = true }
-      )
+      .clickable(onClick = onClick)
       .testTag("vehicle_card_${vehicle.id}"),
     colors = CardDefaults.cardColors(
       containerColor = if (isSelected) {
@@ -805,71 +799,60 @@ fun VehicleGarageCard(
             )
           }
 
-          if (isSelected) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+          ) {
+            if (isSelected) {
               Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = "Active Indicator",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
               )
-              Box {
-                IconButton(
-                  onClick = { showOverflowMenu = true },
-                  modifier = Modifier
-                    .size(24.dp)
-                    .testTag("vehicle_overflow_${vehicle.id}")
-                ) {
-                  Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Vehicle options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                  )
-                }
-                DropdownMenu(
-                  expanded = showOverflowMenu,
-                  onDismissRequest = { showOverflowMenu = false },
-                  shape = RoundedCornerShape(16.dp),
-                  containerColor = MaterialTheme.colorScheme.surface
-                ) {
-                  DropdownMenuItem(
-                    text = {
-                      Text(
-                        text = "Delete vehicle",
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold
-                      )
-                    },
-                    leadingIcon = {
-                      Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                      )
-                    },
-                    onClick = {
-                      showOverflowMenu = false
-                      showConfirmDelete = true
-                    }
-                  )
-                }
-              }
             }
-          } else {
-            IconButton(
-              onClick = { showConfirmDelete = true },
-              modifier = Modifier.size(24.dp)
-            ) {
-              Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Delete Vehicle",
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp)
-              )
+            Box {
+              IconButton(
+                onClick = { showOverflowMenu = true },
+                modifier = Modifier
+                  .size(24.dp)
+                  .testTag("vehicle_overflow_${vehicle.id}")
+              ) {
+                Icon(
+                  imageVector = Icons.Default.MoreVert,
+                  contentDescription = "Vehicle options",
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                  modifier = Modifier.size(18.dp)
+                )
+              }
+              DropdownMenu(
+                expanded = showOverflowMenu,
+                onDismissRequest = { showOverflowMenu = false },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.surface
+              ) {
+                DropdownMenuItem(
+                  text = {
+                    Text(
+                      text = "Delete vehicle",
+                      color = MaterialTheme.colorScheme.error,
+                      fontWeight = FontWeight.SemiBold
+                    )
+                  },
+                  leadingIcon = {
+                    Icon(
+                      imageVector = Icons.Default.Delete,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.error
+                    )
+                  },
+                  onClick = {
+                    showOverflowMenu = false
+                    showConfirmDelete = true
+                  },
+                  modifier = Modifier.testTag("delete_vehicle_menu_${vehicle.id}")
+                )
+              }
             }
           }
         }
@@ -914,21 +897,28 @@ fun VehicleGarageCard(
   if (showConfirmDelete) {
     AlertDialog(
       onDismissRequest = { showConfirmDelete = false },
-      title = { Text("Delete Vehicle?") },
-      text = { Text("This will permanently remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from your garage along with all logged fill-ups and maintenance history.") },
+      modifier = Modifier.testTag("delete_vehicle_confirm"),
+      title = { Text("Delete ${vehicle.year} ${vehicle.make} ${vehicle.model}?") },
+      text = {
+        Text("This removes all its fill-ups, service records, and tire sets. This can't be undone.")
+      },
       confirmButton = {
         Button(
           onClick = {
             onDelete()
             showConfirmDelete = false
           },
+          modifier = Modifier.testTag("confirm_delete_vehicle"),
           colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
         ) {
           Text("Delete")
         }
       },
       dismissButton = {
-        TextButton(onClick = { showConfirmDelete = false }) {
+        TextButton(
+          onClick = { showConfirmDelete = false },
+          modifier = Modifier.testTag("cancel_delete_vehicle")
+        ) {
           Text("Cancel")
         }
       }
