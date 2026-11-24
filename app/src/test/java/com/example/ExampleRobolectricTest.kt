@@ -41,7 +41,7 @@ class ExampleRobolectricTest {
     val maintenance = Maintenance(
       id = 1,
       vehicleId = 1,
-      whatWasDone = "Oil Change",
+      title = "Oil Change",
       cost = 45.0,
       odometer = 12000.0,
       date = System.currentTimeMillis(),

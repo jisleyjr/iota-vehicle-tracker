@@ -191,7 +191,7 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
             repository.insertMaintenance(
                 Maintenance(
                     vehicleId = vehicleId,
-                    whatWasDone = whatWasDone,
+                    title = whatWasDone,
                     cost = cost,
                     odometer = odometer,
                     date = date,
