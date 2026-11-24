@@ -29,6 +29,9 @@ interface VehicleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFillUp(fillUp: FillUp): Long
 
+    @Update
+    suspend fun updateFillUp(fillUp: FillUp)
+
     @Delete
     suspend fun deleteFillUp(fillUp: FillUp)
 

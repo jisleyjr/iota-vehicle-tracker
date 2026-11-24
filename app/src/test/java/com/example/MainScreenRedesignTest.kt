@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -97,7 +96,8 @@ class MainScreenRedesignTest {
     composeTestRule.onNodeWithTag("dashboard_stats_card").assertIsDisplayed()
     composeTestRule.onNodeWithTag("vehicle_overflow_${garage.outbackId}").assertDoesNotExist()
     composeTestRule.onNodeWithContentDescription("Delete Vehicle").assertIsDisplayed()
-    assertTrue(composeTestRule.onAllNodesWithContentDescription("Delete Log Entry").fetchSemanticsNodes().isNotEmpty())
+    composeTestRule.onNodeWithContentDescription("Delete Log Entry").assertDoesNotExist()
+    assertTrue(composeTestRule.onAllNodesWithText("Edit").fetchSemanticsNodes().isNotEmpty())
   }
 
   @Test

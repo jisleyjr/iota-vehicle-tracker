@@ -71,6 +71,7 @@ import com.example.ui.PendingCsvImport
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.VehicleViewModel
 import com.example.ui.viewmodel.VehicleStats
+import java.math.BigDecimal
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -114,6 +115,7 @@ fun VehicleTrackerApp(
   // Dynamic Dialog states
   var showAddVehicle by remember { mutableStateOf(false) }
   var showAddFillUp by remember { mutableStateOf(false) }
+  var editingFillUp by remember { mutableStateOf<FillUp?>(null) }
   var showAddMaintenance by remember { mutableStateOf(false) }
   var showMpgChart by remember { mutableStateOf(false) }
   var pendingImport by remember { mutableStateOf(initialPendingImport) }
@@ -405,10 +407,7 @@ fun VehicleTrackerApp(
                       items(fillUps) { fillUp ->
                         FillUpLogCard(
                           fillUp = fillUp,
-                          onDeleteClick = {
-                            viewModel.deleteFillUp(fillUp)
-                            Toast.makeText(context, "Log deleted", Toast.LENGTH_SHORT).show()
-                          }
+                          onEditClick = { editingFillUp = fillUp }
                         )
                       }
                     }
@@ -469,6 +468,24 @@ fun VehicleTrackerApp(
         Toast.makeText(context, "Fill-up Saved!", Toast.LENGTH_SHORT).show()
       },
       initialDateMillis = nowMillis
+    )
+  }
+
+  editingFillUp?.let { fillUp ->
+    AddFillUpDialog(
+      existing = fillUp,
+      onDismiss = { editingFillUp = null },
+      onSave = { tripMiles, gallons, pricePerGallon, odometer, date ->
+        viewModel.updateFillUp(fillUp, tripMiles, gallons, pricePerGallon, odometer, date)
+        editingFillUp = null
+        Toast.makeText(context, "Fill-up updated!", Toast.LENGTH_SHORT).show()
+      },
+      onDelete = {
+        viewModel.deleteFillUp(fillUp)
+        editingFillUp = null
+        Toast.makeText(context, "Fill-up deleted", Toast.LENGTH_SHORT).show()
+      },
+      initialDateMillis = fillUp.date
     )
   }
 
@@ -1189,7 +1206,7 @@ fun EmptyLogsState(
 @Composable
 fun FillUpLogCard(
   fillUp: FillUp,
-  onDeleteClick: () -> Unit
+  onEditClick: () -> Unit
 ) {
   val formattedDate = remember(fillUp.date) { formatDate(fillUp.date) }
   val mpg = remember(fillUp.tripMiles, fillUp.gallons) {
@@ -1241,11 +1258,9 @@ fun FillUpLogCard(
 
       Spacer(modifier = Modifier.width(14.dp))
 
-      // Informational parameters
       Column(modifier = Modifier.weight(1f)) {
         Row(
           modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(
@@ -1254,14 +1269,26 @@ fun FillUpLogCard(
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurface
           )
+          Spacer(modifier = Modifier.weight(1f))
           Text(
             text = "${formatCurrency(fillUp.gallons * fillUp.pricePerGallon)} Total",
             fontWeight = FontWeight.ExtraBold,
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
+          TextButton(
+            onClick = onEditClick,
+            modifier = Modifier.testTag("edit_fill_up_${fillUp.id}"),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+          ) {
+            Text(
+              text = "Edit",
+              fontWeight = FontWeight.Bold,
+              fontSize = 13.sp
+            )
+          }
         }
-        
+
         Spacer(modifier = Modifier.height(4.dp))
 
         Row(
@@ -1273,30 +1300,21 @@ fun FillUpLogCard(
             text = "${fillUp.tripMiles} mi · ${fillUp.gallons} gal @ ${formatCurrency(fillUp.pricePerGallon)}/gal",
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.outline,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
           )
-          
+          Spacer(modifier = Modifier.width(8.dp))
           Text(
             text = fillUp.odometer?.let { "Odo: ${String.format(Locale.getDefault(), "%,.0f", it)}" } ?: "Odo: --",
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.outline,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            softWrap = false
           )
         }
-      }
-
-      Spacer(modifier = Modifier.width(8.dp))
-
-      IconButton(
-        onClick = onDeleteClick,
-        modifier = Modifier.size(36.dp)
-      ) {
-        Icon(
-          imageVector = Icons.Default.DeleteOutline,
-          contentDescription = "Delete Log Entry",
-          tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-          modifier = Modifier.size(20.dp)
-        )
       }
     }
   }
@@ -1510,16 +1528,18 @@ fun AddVehicleDialog(
 fun AddFillUpDialog(
   onDismiss: () -> Unit,
   onSave: (Double, Double, Double, Double?, Long) -> Unit,
-  initialDateMillis: Long = System.currentTimeMillis()
+  initialDateMillis: Long = System.currentTimeMillis(),
+  existing: FillUp? = null,
+  onDelete: (() -> Unit)? = null
 ) {
-  var tripMiles by remember { mutableStateOf("") }
-  var gallons by remember { mutableStateOf("") }
-  var pricePerGallon by remember { mutableStateOf("") }
-  var odometer by remember { mutableStateOf("") }
+  var tripMiles by remember { mutableStateOf(existing?.tripMiles?.let(::formatEditableNumber).orEmpty()) }
+  var gallons by remember { mutableStateOf(existing?.gallons?.let(::formatEditableNumber).orEmpty()) }
+  var pricePerGallon by remember { mutableStateOf(existing?.pricePerGallon?.let(::formatEditableNumber).orEmpty()) }
+  var odometer by remember { mutableStateOf(existing?.odometer?.let(::formatEditableNumber).orEmpty()) }
   var dateTimestamp by remember {
     mutableStateOf(
       Calendar.getInstance().apply {
-        timeInMillis = initialDateMillis
+        timeInMillis = existing?.date ?: initialDateMillis
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
@@ -1527,7 +1547,7 @@ fun AddFillUpDialog(
       }.timeInMillis
     )
   }
-
+  var showDeleteConfirm by remember { mutableStateOf(false) }
   var tripError by remember { mutableStateOf(false) }
   var gallonsError by remember { mutableStateOf(false) }
   var priceError by remember { mutableStateOf(false) }
@@ -1535,8 +1555,39 @@ fun AddFillUpDialog(
 
   val context = LocalContext.current
 
+  val editing = existing != null && onDelete != null
+
+  if (showDeleteConfirm && onDelete != null) {
+    AlertDialog(
+      onDismissRequest = { showDeleteConfirm = false },
+      modifier = Modifier.testTag("delete_fill_up_confirm"),
+      title = { Text("Delete Fill-up?") },
+      text = {
+        Text("Are you sure you want to delete this fill-up? This cannot be undone.")
+      },
+      confirmButton = {
+        Button(
+          onClick = onDelete,
+          modifier = Modifier.testTag("confirm_delete_fill_up"),
+          colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        ) {
+          Text("Delete")
+        }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = { showDeleteConfirm = false },
+          modifier = Modifier.testTag("cancel_delete_fill_up")
+        ) {
+          Text("Cancel")
+        }
+      }
+    )
+    return
+  }
+
   CustomDialogEnvelope(
-    title = "Log Gas Fill-Up",
+    title = if (editing) "Edit Fill-up" else "Log Gas Fill-Up",
     onDismiss = onDismiss,
     onSave = {
       val tripVal = tripMiles.toDoubleOrNull()
@@ -1655,6 +1706,31 @@ fun AddFillUpDialog(
         Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(6.dp))
         Text("Change Date")
+      }
+    }
+
+    if (editing) {
+      Spacer(modifier = Modifier.height(16.dp))
+      OutlinedButton(
+        onClick = { showDeleteConfirm = true },
+        modifier = Modifier
+          .fillMaxWidth()
+          .testTag("delete_fill_up_button"),
+        colors = ButtonDefaults.outlinedButtonColors(
+          contentColor = MaterialTheme.colorScheme.error
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+          width = 1.dp,
+          color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+        )
+      ) {
+        Icon(
+          imageVector = Icons.Default.DeleteOutline,
+          contentDescription = null,
+          modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("Delete fill-up", fontWeight = FontWeight.SemiBold)
       }
     }
   }
@@ -1893,6 +1969,10 @@ fun CustomDialogEnvelope(
 }
 
 // --- CORE UTILITY HELPERS ---
+
+private fun formatEditableNumber(value: Double): String {
+  return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
+}
 
 private fun formatDate(timestamp: Long): String {
   val sdf = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())

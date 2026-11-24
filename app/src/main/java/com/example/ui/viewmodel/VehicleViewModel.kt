@@ -158,6 +158,27 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
         }
     }
 
+    fun updateFillUp(
+        fillUp: FillUp,
+        tripMiles: Double,
+        gallons: Double,
+        pricePerGallon: Double,
+        odometer: Double?,
+        date: Long
+    ) {
+        viewModelScope.launch {
+            repository.updateFillUp(
+                fillUp.copy(
+                    tripMiles = tripMiles,
+                    gallons = gallons,
+                    pricePerGallon = pricePerGallon,
+                    odometer = odometer,
+                    date = date
+                )
+            )
+        }
+    }
+
     fun deleteFillUp(fillUp: FillUp) {
         viewModelScope.launch {
             repository.deleteFillUp(fillUp)
