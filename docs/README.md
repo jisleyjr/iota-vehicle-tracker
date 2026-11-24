@@ -18,9 +18,9 @@ cp app/src/test/screenshots/*.png docs/screenshots/
 | File | What it shows |
 | --- | --- |
 | `empty-garage.png` | Garage with no vehicles: the add-vehicle card and the empty-state prompt. |
-| `garage-fill-ups.png` | Both vehicles, the Camry efficiency row collapsed to average MPG and 2,399 miles since the last oil change, and the gas fill-up list. Each fill-up has an Edit button. The Fuel Logs header has a CSV menu. |
+| `garage-fill-ups.png` | Both vehicles, the Camry efficiency row collapsed to average MPG and 2399 miles since the last oil change, and the gas fill-up list. Each fill-up has an Edit button. The Fuel Logs header has a CSV menu. |
 | `expanded-dashboard.png` | The same Camry screen with efficiency expanded. The MPG chart button is in that area, and the Last Oil Change tile stays in the top row. Fill-up rows have an Edit button. |
-| `maintenance-log.png` | The Camry Service Logs tab: type chips, type badges, Summer and Winter miles, "Oil changed 2,399 miles ago", and an Edit button on each record. |
+| `maintenance-log.png` | The Camry Service Logs tab: type chips, type badges, Summer and Winter miles, "Oil changed 2399 miles ago", and an Edit button on each record. |
 | `empty-fuel-logs.png` | The Outback selected, with a collapsed efficiency row (Last Oil Change shows an em dash) and the "No Fuel Logs" state. |
 | `add-vehicle.png` | The Add Vehicle Details dialog, filled with a 2016 Honda Civic. |
 | `add-fill-up.png` | The Log Gas Fill-Up dialog, filled with trip miles, gallons, price, and odometer. |

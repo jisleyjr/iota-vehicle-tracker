@@ -73,24 +73,33 @@ fun computeOilChangeStatus(maintenance: List<Maintenance>, latestOdometer: Doubl
 }
 
 fun formatMiles(miles: Double, locale: Locale = Locale.getDefault()): String {
-    val format = NumberFormat.getIntegerInstance(locale)
-    format.roundingMode = RoundingMode.HALF_UP
-    format.maximumFractionDigits = 0
-    return format.format(miles)
+    return formatRoundedMiles(miles, locale, grouping = true)
 }
 
 fun formatOilChangeIndicator(status: OilChangeStatus, locale: Locale = Locale.getDefault()): String {
     return when (status) {
         OilChangeStatus.None -> "No oil change logged"
-        is OilChangeStatus.MilesAgo -> "Oil changed ${formatMiles(status.miles, locale)} miles ago"
+        is OilChangeStatus.MilesAgo -> "Oil changed ${formatOilChangeMiles(status.miles, locale)} miles ago"
     }
 }
 
 fun formatLastOilChangeMiles(status: OilChangeStatus, locale: Locale = Locale.getDefault()): String {
     return when (status) {
         OilChangeStatus.None -> "\u2014"
-        is OilChangeStatus.MilesAgo -> formatMiles(status.miles, locale)
+        is OilChangeStatus.MilesAgo -> formatOilChangeMiles(status.miles, locale)
     }
+}
+
+private fun formatOilChangeMiles(miles: Double, locale: Locale): String {
+    return formatRoundedMiles(miles, locale, grouping = false)
+}
+
+private fun formatRoundedMiles(miles: Double, locale: Locale, grouping: Boolean): String {
+    val format = NumberFormat.getIntegerInstance(locale)
+    format.roundingMode = RoundingMode.HALF_UP
+    format.isGroupingUsed = grouping
+    format.maximumFractionDigits = 0
+    return format.format(miles)
 }
 
 fun formatTireSetMiles(miles: Double?, locale: Locale = Locale.getDefault()): String {

@@ -39,8 +39,8 @@ class OilChangeIndicatorTest {
         val status = computeOilChangeStatus(maintenance, latestOdometer = 48000.0) as OilChangeStatus.MilesAgo
 
         assertEquals(6000.0, status.miles, 0.001)
-        assertEquals("Oil changed 6,000 miles ago", formatOilChangeIndicator(status))
-        assertEquals("6,000", formatLastOilChangeMiles(status))
+        assertEquals("Oil changed 6000 miles ago", formatOilChangeIndicator(status))
+        assertEquals("6000", formatLastOilChangeMiles(status))
     }
 
     @Test
@@ -90,7 +90,7 @@ class OilChangeIndicatorTest {
 
         assertEquals(50000.0, latest, 0.001)
         assertEquals(8000.0, status.miles, 0.001)
-        assertEquals("Oil changed 8,000 miles ago", formatOilChangeIndicator(status))
+        assertEquals("Oil changed 8000 miles ago", formatOilChangeIndicator(status))
         assertTrue(latest > maintenance.maxOf { it.odometer })
     }
 

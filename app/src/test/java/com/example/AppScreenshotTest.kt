@@ -83,7 +83,7 @@ class AppScreenshotTest {
     showApp()
     selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2399") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     captureRoot("garage-fill-ups")
   }
@@ -95,7 +95,7 @@ class AppScreenshotTest {
     selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Oil changed 2,399 miles ago") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Oil changed 2399 miles ago") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("14,000 mi") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("1,399 mi") }
     composeTestRule.onNodeWithTag("maintenance_filter_OIL_CHANGE").performClick()
@@ -330,7 +330,7 @@ class AppScreenshotTest {
     showApp()
     selectCamry()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2,399") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("2399") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
