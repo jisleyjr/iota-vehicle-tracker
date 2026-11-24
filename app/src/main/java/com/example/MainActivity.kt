@@ -357,15 +357,6 @@ fun VehicleTrackerApp(
         EmptyGarageState(onAddClick = { showAddVehicle = true })
       } else {
         selectedVehicle?.let { activeVehicle ->
-          // Metrics & Dashboard Header
-          Text(
-            text = "Dashboard",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-          )
-
-          // 2x3 Grid/Column layout for high fidelity diagnostics
           VehicleDashboardStats(
             stats = stats,
             lastOilChangeMiles = lastOilChangeMiles,

@@ -116,7 +116,7 @@ class MaintenanceEditTest {
   }
 
   private fun openServiceLogs() {
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Dashboard") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("EFFICIENCY") }
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
   }

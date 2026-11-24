@@ -124,7 +124,6 @@ class MainScreenRedesignTest {
     }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Camry") }
     composeTestRule.onNodeWithText("Camry").performClick()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Dashboard") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("11/06/2026") }
     return garage
   }
