@@ -2,7 +2,7 @@
 
 These images are rendered from the app's Compose UI by Roborazzi and Robolectric (`app/src/test/java/com/example/AppScreenshotTest.kt`) on a Pixel 8 configuration. The copies in this folder are what the project README displays. The same PNGs under `app/src/test/screenshots/` are the comparison goldens.
 
-The populated screens use two vehicles stored through Room: a 2021 Toyota Camry (`CAM4219`) with fill-ups and service records, and a 2018 Subaru Outback (`8FKR392`) with none. The efficiency dashboard starts collapsed, showing average MPG and last-oil-change miles in the same large-number style (or an em dash when none is logged). The MPG chart button is inside the expanded section. Every garage card has an overflow menu with Delete vehicle, which asks for confirmation before removing the vehicle and its logs. Each fuel log and each service record has an Edit button that opens the saved row in its form. Delete on that form asks for confirmation before removing the row. The Fuel Logs header has a CSV menu for import and export. Service Logs shows a type filter, a type badge on each record, tire-set miles, and the oil-change indicator. Dialog screenshots type into the real form fields, except the edit forms, which are prefilled. The date on a new fill-up or maintenance form is 11/13/2026 because the screenshot test passes that timestamp; the app defaults to the current time. An edited record keeps the date that was saved.
+The populated screens use two vehicles stored through Room: a 2021 Toyota Camry (`CAM4219`) with fill-ups and service records, and a 2018 Subaru Outback (`8FKR392`) with none. The efficiency dashboard starts collapsed, showing average MPG and last-oil-change miles in the same large-number style (or an em dash when none is logged). The MPG chart button is inside the expanded section, and tire sets are full-width rows under Gas Costs and Service Repairs. Every garage card has an overflow menu with Delete vehicle, which asks for confirmation before removing the vehicle and its logs. Each fuel log and each service record has an Edit button that opens the saved row in its form. Delete on that form asks for confirmation before removing the row. The Fuel Logs header has a CSV menu for import and export. Service Logs keeps its title on the same row as an All types menu. Each record is the same height as a fill-up, with a green type chip and a single detail line that leads with the description. Dialog screenshots type into the real form fields, except the edit forms, which are prefilled. The date on a new fill-up or maintenance form is 11/13/2026 because the screenshot test passes that timestamp; the app defaults to the current time. An edited record keeps the date that was saved.
 
 ## Regenerate
 
@@ -20,8 +20,10 @@ cp app/src/test/screenshots/*.png docs/screenshots/
 | `empty-garage.png` | Garage with no vehicles: the add-vehicle card and the empty-state prompt. |
 | `delete-vehicle-confirm.png` | Confirmation before deleting the 2018 Subaru Outback and all of its logs. |
 | `garage-fill-ups.png` | Both vehicles, the Camry efficiency row collapsed to average MPG and 2399 miles since the last oil change, and the gas fill-up list. Each fill-up has an Edit button. The Fuel Logs header has a CSV menu. |
-| `expanded-dashboard.png` | The same Camry screen with efficiency expanded. The MPG chart button is in that area, and the Last Oil Change tile stays in the top row. Fill-up rows have an Edit button. |
-| `maintenance-log.png` | The Camry Service Logs tab: type chips, type badges, Summer and Winter miles, "Oil changed 2399 miles ago", and an Edit button on each record. |
+| `expanded-dashboard.png` | The same Camry screen with efficiency expanded. Tire sets are full-width rows under Service Repairs, with Edit and Add set. The MPG chart button is in that area, and the Last Oil Change tile stays in the top row. |
+| `maintenance-log.png` | The Camry Service Logs tab: the title shares a row with the All types menu, each record has a green type chip and one detail line, and an Edit button. Tire sets are not in this list. |
+| `maintenance-filtered-oil.png` | The same list filtered to Oil change. Brake pads and the other types are hidden. |
+| `maintenance-no-match.png` | The type menu set to Other, with the "No matching records" empty state. |
 | `empty-fuel-logs.png` | The Outback selected, with a collapsed efficiency row (Last Oil Change shows an em dash) and the "No Fuel Logs" state. |
 | `add-vehicle.png` | The Add Vehicle Details dialog, filled with a 2016 Honda Civic. |
 | `add-fill-up.png` | The Log Gas Fill-Up dialog, filled with trip miles, gallons, price, and odometer. |
@@ -31,7 +33,7 @@ cp app/src/test/screenshots/*.png docs/screenshots/
 | `edit-maintenance.png` | The Edit Maintenance form for brake pads, prefilled as a Repair, with Delete service record. |
 | `delete-maintenance.png` | The confirmation dialog asking before that service record is deleted. |
 | `add-tire-swap.png` | A tire-swap entry with Summer selected, Winter marked as the mounted set, a description, and operating hours. |
-| `no-oil-change.png` | The Outback Service Logs tab: "No oil change logged", no tire sets, and no service records. |
+| `no-oil-change.png` | The Outback Service Logs tab: no oil-change line under the title, the All types menu, and no service records. Tire sets stay on the expanded card. |
 | `mpg-history.png` | The MPG History chart for the Camry's fill-ups. |
 | `import-csv-preview.png` | The import preview for `camry_fillups.csv`: new rows, duplicates of saved and earlier rows, and a row whose date could not be parsed. |
 | `csv-menu.png` | The Fuel Logs `CSV` menu open on the Camry, with Import CSV and Export CSV. |

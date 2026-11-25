@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -25,7 +24,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Build
@@ -38,6 +39,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -95,18 +98,12 @@ data class TireSetFormResult(
     val purchaseDate: Long?
 )
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ServiceLogsContent(
     vehicleId: Int?,
     maintenance: List<Maintenance>,
     tireSetMileage: List<TireSetMileage>,
-    mountedTireSetId: Int?,
-    oilChangeLabel: String,
-    oilChangeLogged: Boolean,
     onEditMaintenance: (Maintenance) -> Unit,
-    onAddTireSet: () -> Unit,
-    onEditTireSet: (TireSet) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var typeFilter by remember(vehicleId) { mutableStateOf<MaintenanceType?>(null) }
@@ -126,60 +123,24 @@ fun ServiceLogsContent(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = "Service Logs",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Text(
-                text = oilChangeLabel,
-                modifier = Modifier
-                    .testTag("oil_change_indicator")
-                    .padding(top = 2.dp),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (oilChangeLogged) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.outline
-                }
+            MaintenanceTypeMenu(
+                selected = typeFilter,
+                onSelect = { typeFilter = it }
             )
         }
-
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-                .testTag("maintenance_type_filters"),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            FilterChip(
-                selected = typeFilter == null,
-                onClick = { typeFilter = null },
-                label = { Text("All") },
-                modifier = Modifier.testTag("maintenance_filter_all")
-            )
-            MaintenanceType.entries.forEach { type ->
-                FilterChip(
-                    selected = typeFilter == type,
-                    onClick = { typeFilter = type },
-                    label = { Text(type.label) },
-                    modifier = Modifier.testTag("maintenance_filter_${type.name}")
-                )
-            }
-        }
-
-        TireSetsSection(
-            mileage = tireSetMileage,
-            mountedTireSetId = mountedTireSetId,
-            onAdd = onAddTireSet,
-            onEdit = onEditTireSet
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         if (visible.isEmpty()) {
             EmptyLogsState(
@@ -195,7 +156,7 @@ fun ServiceLogsContent(
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp),
+                contentPadding = PaddingValues(bottom = 80.dp),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -214,7 +175,94 @@ fun ServiceLogsContent(
 }
 
 @Composable
-private fun TireSetsSection(
+private fun MaintenanceTypeMenu(
+    selected: MaintenanceType?,
+    onSelect: (MaintenanceType?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    androidx.compose.foundation.layout.Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            modifier = Modifier
+                .height(34.dp)
+                .testTag("maintenance_type_menu")
+        ) {
+            Text(
+                text = selected?.label ?: "All types",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = "Open type menu",
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            MaintenanceTypeMenuItem(
+                label = "All",
+                selected = selected == null,
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+                modifier = Modifier.testTag("maintenance_filter_all")
+            )
+            MaintenanceType.entries.forEach { type ->
+                MaintenanceTypeMenuItem(
+                    label = type.label,
+                    selected = selected == type,
+                    onClick = {
+                        onSelect(type)
+                        expanded = false
+                    },
+                    modifier = Modifier.testTag("maintenance_filter_${type.name}")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MaintenanceTypeMenuItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    DropdownMenuItem(
+        text = {
+            Text(
+                text = label,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            )
+        },
+        onClick = onClick,
+        leadingIcon = {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.size(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun TireSetsDashboardSection(
     mileage: List<TireSetMileage>,
     mountedTireSetId: Int?,
     onAdd: () -> Unit,
@@ -225,29 +273,12 @@ private fun TireSetsSection(
             .fillMaxWidth()
             .testTag("tire_sets_section")
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Tire sets",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            TextButton(
-                onClick = onAdd,
-                modifier = Modifier.testTag("add_tire_set_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.SwapHoriz,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Add set", fontWeight = FontWeight.SemiBold)
-            }
-        }
+        Text(
+            text = "Tire sets",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         if (mileage.isEmpty()) {
             Text(
                 text = "No tire sets yet.",
@@ -256,65 +287,114 @@ private fun TireSetsSection(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
         } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("tire_sets_row")
-            ) {
-                items(mileage, key = { it.tireSet.id }) { item ->
-                    TireSetMileageCard(
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                mileage.forEach { item ->
+                    TireSetRow(
                         item = item,
                         mounted = item.tireSet.id == mountedTireSetId,
-                        onClick = { onEdit(item.tireSet) }
+                        onEdit = { onEdit(item.tireSet) }
                     )
                 }
             }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onAdd,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .testTag("add_tire_set_button"),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.SwapHoriz,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Add set", fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 @Composable
-private fun TireSetMileageCard(
+private fun TireSetRow(
     item: TireSetMileage,
     mounted: Boolean,
-    onClick: () -> Unit
+    onEdit: () -> Unit
 ) {
+    val detail = listOfNotNull(item.tireSet.brand, item.tireSet.size).joinToString(" · ")
     Card(
         modifier = Modifier
-            .width(148.dp)
+            .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .testTag("tire_set_card_${item.tireSet.id}"),
+            .clickable(onClick = onEdit)
+            .testTag("tire_set_row_${item.tireSet.id}"),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(
-                text = item.tireSet.name,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = formatTireSetMiles(item.miles),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            if (mounted) {
-                Text(
-                    text = "Mounted",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.tireSet.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (mounted) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Mounted",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = formatTireSetMiles(item.miles),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (detail.isNotBlank()) {
+                        Text(
+                            text = "  ·  $detail",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
+            Text(
+                text = "Edit",
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .testTag("edit_tire_set_${item.tireSet.id}"),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
         }
     }
 }
@@ -364,24 +444,44 @@ fun MaintenanceLogCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = maintenance.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = maintenance.title,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = maintenance.type.label,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier
+                                .testTag("maintenance_badge_${maintenance.id}")
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = formatServiceCurrency(maintenance.cost),
                         fontWeight = FontWeight.Black,
                         fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     TextButton(
                         onClick = onEditClick,
@@ -398,57 +498,21 @@ fun MaintenanceLogCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = maintenance.type.label,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .testTag("maintenance_badge_${maintenance.id}")
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-
                 val description = maintenance.description?.takeIf { it.isNotBlank() }
-                if (description != null) {
-                    Text(
-                        text = description,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                } else {
-                    Spacer(modifier = Modifier.height(4.dp))
+                val odoText = "Odo: ${String.format(Locale.getDefault(), "%,.0f", maintenance.odometer)}"
+                val hoursText = maintenance.hours?.let {
+                    String.format(Locale.getDefault(), "%.1f hrs", it)
                 }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = formattedDate,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.outline,
-                        fontWeight = FontWeight.Medium
-                    )
-                    val odoText = "Odo: ${String.format(Locale.getDefault(), "%,.0f", maintenance.odometer)}"
-                    val hoursText = maintenance.hours?.let {
-                        " · ${String.format(Locale.getDefault(), "%.1f", it)} hrs"
-                    } ?: ""
-                    val setText = tireSetName?.let { " · $it" } ?: ""
-                    Text(
-                        text = "$odoText$hoursText$setText",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.outline,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                val detail = listOfNotNull(formattedDate, odoText, hoursText, tireSetName)
+                    .joinToString(" · ")
+                Text(
+                    text = if (description != null) "$description · $detail" else detail,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.outline,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
         }
