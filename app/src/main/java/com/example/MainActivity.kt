@@ -1,5 +1,8 @@
 package com.example
 
+import com.example.data.csv.ServiceImport
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.app.DatePickerDialog
 import android.content.Context
 import android.net.Uri
@@ -107,7 +110,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun VehicleTrackerApp(
   nowMillis: Long = System.currentTimeMillis(),
-  initialPendingImport: PendingCsvImport? = null
+  initialPendingImport: PendingCsvImport? = null,
+  initialServiceImport: Pair<String, ServiceImport>? = null
 ) {
   val context = LocalContext.current
   val db = remember { AppDatabase.getDatabase(context) }
@@ -147,6 +151,61 @@ fun VehicleTrackerApp(
 
   val coroutineScope = rememberCoroutineScope()
   val contentResolver = context.contentResolver
+  var serviceDestination by rememberSaveable { mutableStateOf<Int?>(null) }
+  var servicePreview by remember { mutableStateOf(initialServiceImport) }
+  var savingService by remember { mutableStateOf(false) }
+  val servicePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val id = serviceDestination
+    serviceDestination = null
+    if (uri != null && id != null) coroutineScope.launch {
+      try {
+        servicePreview = withContext(Dispatchers.IO) {
+          val text = requireNotNull(contentResolver.openInputStream(uri)) { "Could not open CSV" }
+            .bufferedReader(Charsets.UTF_8).use { it.readText() }
+          csvDisplayName(context, uri) to viewModel.previewServiceImport(id, text)
+        }
+      } catch (error: Exception) {
+        Toast.makeText(context, "Import failed: ${error.message}", Toast.LENGTH_LONG).show()
+      }
+    }
+  }
+  servicePreview?.let { (filename, preview) ->
+    AlertDialog(
+      onDismissRequest = { if (!savingService) servicePreview = null },
+      title = { Text("Import Service Logs (CSV)") },
+      text = {
+        Column {
+          Text("$filename · ${preview.vehicleLabel}")
+          Text("${preview.newCount} new · ${preview.duplicates} duplicates · ${preview.skipped} skipped")
+          LazyColumn {
+            items(preview.rows) { row ->
+              Text("${row.label}\n${row.reason}", Modifier.padding(vertical = 6.dp))
+            }
+          }
+        }
+      },
+      dismissButton = { TextButton(enabled = !savingService, onClick = { servicePreview = null }) { Text("Cancel") } },
+      confirmButton = {
+        TextButton(enabled = !savingService && preview.newCount > 0, onClick = {
+          if (!savingService) {
+            savingService = true
+            coroutineScope.launch {
+              try {
+                val count = viewModel.commitServiceImport(preview)
+                val duplicates = preview.duplicates + preview.newCount - count
+                Toast.makeText(context, "Imported $count service records · $duplicates duplicates · ${preview.skipped} skipped", Toast.LENGTH_LONG).show()
+                servicePreview = null
+              } catch (error: Exception) {
+                Toast.makeText(context, "Import failed: ${error.message}", Toast.LENGTH_LONG).show()
+              } finally {
+                savingService = false
+              }
+            }
+          }
+        }) { Text(com.example.data.csv.importButtonLabel(preview.newCount)) }
+      }
+    )
+  }
   val csvLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.GetContent()
   ) { uri ->
@@ -447,6 +506,10 @@ fun VehicleTrackerApp(
               1 -> {
                 ServiceLogsContent(
                   vehicleId = activeVehicle.id,
+                  onImportClick = {
+                    serviceDestination = activeVehicle.id
+                    servicePicker.launch("*/*")
+                  },
                   maintenance = maintenanceList,
                   onExportClick = {
                     val records = maintenanceList.filter { it.vehicleId == activeVehicle.id }

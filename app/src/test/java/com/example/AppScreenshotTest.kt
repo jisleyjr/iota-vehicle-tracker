@@ -299,6 +299,23 @@ class AppScreenshotTest {
   }
 
   @Test
+  fun serviceImportPreview() {
+    val garage = seedSampleGarage()
+    val csv = requireNotNull(javaClass.getResource("/service-logs.csv")).readText()
+    val vehicle = Vehicle(garage.camryId, "Toyota", "Camry", 2021)
+    val parser = com.example.data.csv.ServiceImportParser
+    val first = parser.parse(csv, vehicle, emptyList(), emptyList()).rows.first().record!!
+    val preview = parser.parse(csv, vehicle, listOf(first), emptyList())
+    composeTestRule.setContent {
+      MyApplicationTheme(darkTheme = false) {
+        VehicleTrackerApp(initialServiceImport = "service-logs.csv" to preview)
+      }
+    }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("3 new · 1 duplicates · 1 skipped") }
+    captureDialog("service-import-preview")
+  }
+
+  @Test
   fun importCsvPreviewDialog() {
     val garage = seedSampleGarage()
     val csv = """

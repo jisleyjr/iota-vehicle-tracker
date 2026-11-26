@@ -1,5 +1,7 @@
 package com.example.data.db
 
+import com.example.data.csv.importKey
+import com.example.data.csv.ServiceImport
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -37,6 +39,26 @@ interface VehicleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFillUp(fillUp: FillUp): Long
+
+    @androidx.room.Transaction
+    suspend fun commitServiceImport(preview: ServiceImport): Int {
+        requireNotNull(getVehicleById(preview.vehicleId)) { "Destination vehicle was deleted" }
+        val tires = getTireSetSnapshot(preview.vehicleId).groupBy { it.name }
+        val known = getMaintenanceSnapshot(preview.vehicleId).map { it.importKey() }.toMutableSet()
+        var count = 0
+        for (row in preview.rows) {
+            val record = row.record ?: continue
+            require(record.vehicleId == preview.vehicleId)
+            if (record.tireSetId != null) {
+                require(tires[row.tireName]?.singleOrNull()?.id == record.tireSetId) { "Tire sets changed. Preview the file again." }
+            }
+            if (known.add(record.importKey())) {
+                insertMaintenance(record)
+                count++
+            }
+        }
+        return count
+    }
 
     @Update
     suspend fun updateFillUp(fillUp: FillUp)

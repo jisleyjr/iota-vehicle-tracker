@@ -151,6 +151,6 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 | --- | --- |
 | <img src="docs/screenshots/delete-vehicle-confirm.png" alt="Delete vehicle confirmation" width="240" /> | <img src="docs/screenshots/csv-menu.png" alt="CSV menu with Import and Export" width="240" /> |
 
-| Export fill-ups |
-| --- |
-| <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> |
+| Export fill-ups | Import service logs |
+| --- | --- |
+| <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> | <img src="docs/screenshots/service-import-preview.png" alt="Service CSV import with new, duplicate, and skipped records" width="240" /> |

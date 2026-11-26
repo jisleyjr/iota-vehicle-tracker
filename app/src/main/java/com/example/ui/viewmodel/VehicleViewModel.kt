@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import com.example.data.csv.ServiceImport
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -273,6 +274,10 @@ class VehicleViewModel(private val repository: VehicleRepository) : ViewModel() 
             onResult(result)
         }
     }
+
+    suspend fun previewServiceImport(id: Int, text: String) = repository.previewServiceImport(id, text)
+
+    suspend fun commitServiceImport(preview: ServiceImport) = repository.commitServiceImport(preview)
 
     suspend fun previewFillUpImport(csvText: String): Result<ReadyFillUpImport> {
         val vehicleId = selectedVehicleId.value

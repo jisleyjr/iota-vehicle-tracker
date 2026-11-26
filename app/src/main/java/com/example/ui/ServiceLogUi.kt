@@ -103,6 +103,7 @@ fun ServiceLogsContent(
     vehicleId: Int?,
     maintenance: List<Maintenance>,
     tireSetMileage: List<TireSetMileage>,
+    onImportClick: () -> Unit,
     onExportClick: () -> Unit,
     onEditMaintenance: (Maintenance) -> Unit,
     modifier: Modifier = Modifier
@@ -138,7 +139,7 @@ fun ServiceLogsContent(
                 color = MaterialTheme.colorScheme.primary
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                com.example.CsvActionsButton(maintenance.any { it.vehicleId == vehicleId }, null, onExportClick)
+                com.example.CsvActionsButton(maintenance.any { it.vehicleId == vehicleId }, onImportClick, onExportClick)
                 MaintenanceTypeMenu(
                     selected = typeFilter,
                     onSelect = { typeFilter = it }
