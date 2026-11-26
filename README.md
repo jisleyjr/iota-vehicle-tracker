@@ -117,7 +117,7 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 
 | Expanded efficiency | Maintenance log |
 | --- | --- |
-| <img src="docs/screenshots/expanded-dashboard.png" alt="Expanded efficiency dashboard with the MPG chart button and last oil change tile" width="240" /> | <img src="docs/screenshots/maintenance-log.png" alt="Typed service logs with tire-set miles and an oil-change indicator" width="240" /> |
+| <img src="docs/screenshots/expanded-dashboard.png" alt="Expanded efficiency dashboard with tire-set rows under service repairs" width="240" /> | <img src="docs/screenshots/maintenance-log.png" alt="Service logs with a type menu and fill-up-height cards" width="240" /> |
 
 | Vehicle with no fuel logs | Add vehicle |
 | --- | --- |
@@ -137,7 +137,11 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 
 | Tire swap | No oil change |
 | --- | --- |
-| <img src="docs/screenshots/add-tire-swap.png" alt="Tire swap form with a tire set picker" width="240" /> | <img src="docs/screenshots/no-oil-change.png" alt="Service logs with no oil change logged" width="240" /> |
+| <img src="docs/screenshots/add-tire-swap.png" alt="Tire swap form with a tire set picker" width="240" /> | <img src="docs/screenshots/no-oil-change.png" alt="Service logs with no records and an All types menu" width="240" /> |
+
+| Filtered to oil changes | No records of that type |
+| --- | --- |
+| <img src="docs/screenshots/maintenance-filtered-oil.png" alt="Service logs filtered to oil changes" width="240" /> | <img src="docs/screenshots/maintenance-no-match.png" alt="Service logs with no records of the selected type" width="240" /> |
 
 | Fuel-efficiency history | Import fill-ups |
 | --- | --- |

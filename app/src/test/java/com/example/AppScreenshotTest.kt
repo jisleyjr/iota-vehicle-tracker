@@ -95,22 +95,29 @@ class AppScreenshotTest {
     selectCamry()
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Brake pads") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Oil changed 2399 miles ago") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("14,000 mi") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("1,399 mi") }
-    composeTestRule.onNodeWithTag("maintenance_filter_OIL_CHANGE").performClick()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5W-30 synthetic") }
-    check(!hasText("Front pads and rotors"))
-    composeTestRule.onNodeWithTag("maintenance_filter_all").performClick()
-    composeTestRule.onNodeWithTag("maintenance_list").performScrollToNode(
-      androidx.compose.ui.test.hasText("Front pads and rotors")
-    )
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("All types") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Repair") }
-    composeTestRule.onNodeWithTag("maintenance_list").performScrollToNode(
-      androidx.compose.ui.test.hasText("Brake pads")
-    )
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors", substring = true) }
+    check(!hasText("Oil changed 2399 miles ago"))
+    check(!hasText("No oil change logged"))
+    check(!hasText("Tire sets"))
+    check(!hasText("14,000 mi"))
     captureRoot("maintenance-log")
+
+    composeTestRule.onNodeWithTag("maintenance_type_menu").performClick()
+    composeTestRule.onNodeWithTag("maintenance_filter_OIL_CHANGE").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5W-30 synthetic", substring = true) }
+    composeTestRule.waitUntil(TIMEOUT_MS) { !hasText("Brake pads") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Oil change") }
+    captureRoot("maintenance-filtered-oil")
+
+    composeTestRule.onNodeWithTag("maintenance_type_menu").performClick()
+    composeTestRule.onNodeWithTag("maintenance_filter_OTHER").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No matching records") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No service records match this type.") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { !hasText("Brake pads") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { !hasText("5W-30 synthetic", substring = true) }
+    captureRoot("maintenance-no-match")
   }
 
   @Test
@@ -121,10 +128,20 @@ class AppScreenshotTest {
     composeTestRule.onNodeWithTag("vehicle_card_${garage.outbackId}").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Fuel Logs") }
     composeTestRule.onNodeWithTag("maintenance_tab").performClick()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No oil change logged") }
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No tire sets yet.") }
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No Service Records") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("All types") }
+    check(!hasText("No oil change logged"))
+    check(!hasText("No tire sets yet."))
+    check(!hasText("Tire sets"))
     captureRoot("no-oil-change")
+
+    composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("No tire sets yet.") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Add set") }
+    composeTestRule.onNodeWithTag("add_tire_set_button").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("tire_sets_section").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("add_tire_set_button").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Add Tire Set") }
   }
 
   @Test
@@ -143,7 +160,7 @@ class AppScreenshotTest {
     }
     captureDialog("delete-maintenance")
     composeTestRule.onNodeWithText("Cancel").performClick()
-    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Front pads and rotors", substring = true) }
   }
 
   @Test
@@ -348,8 +365,18 @@ class AppScreenshotTest {
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("MILES") }
     composeTestRule.onNodeWithTag("efficiency_toggle").performClick()
     composeTestRule.waitUntil(TIMEOUT_MS) { hasText("TOTAL EXPENDITURES") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Tire sets") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("14,000 mi") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("1,399 mi") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Mounted") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Add set") }
     composeTestRule.onNodeWithTag("stats_icon_button").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("tire_sets_section").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("add_tire_set_button").assertIsDisplayed()
     captureRoot("expanded-dashboard")
+    composeTestRule.onNodeWithText("Winter").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Edit Tire Set") }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("Blizzak") }
   }
 
   @Test

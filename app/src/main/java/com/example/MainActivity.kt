@@ -61,10 +61,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.csv.FillUpCsvFiles
 import com.example.data.csv.FillUpCsvWriter
 import com.example.data.db.AppDatabase
-import com.example.data.maintenance.OilChangeStatus
 import com.example.data.maintenance.TireSetDeleteResult
+import com.example.data.maintenance.TireSetMileage
 import com.example.data.maintenance.formatLastOilChangeMiles
-import com.example.data.maintenance.formatOilChangeIndicator
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
 import com.example.data.model.TireSet
@@ -72,6 +71,7 @@ import com.example.data.model.Vehicle
 import com.example.ui.MaintenanceFormDialog
 import com.example.ui.MaintenanceFormResult
 import com.example.ui.ServiceLogsContent
+import com.example.ui.TireSetsDashboardSection
 import com.example.ui.TireSetFormDialog
 import com.example.data.repository.VehicleRepository
 import com.example.ui.ExportCsvSheet
@@ -124,8 +124,6 @@ fun VehicleTrackerApp(
   val tireSetMileage by viewModel.tireSetMileage.collectAsStateWithLifecycle()
   val oilStatus by viewModel.oilChangeStatus.collectAsStateWithLifecycle()
   val mountedTireSetId by viewModel.mountedTireSetId.collectAsStateWithLifecycle()
-  val oilChangeLabel = formatOilChangeIndicator(oilStatus)
-  val oilChangeLogged = oilStatus is OilChangeStatus.MilesAgo
   val lastOilChangeMiles = formatLastOilChangeMiles(oilStatus)
 
   // Dynamic Dialog states
@@ -360,7 +358,17 @@ fun VehicleTrackerApp(
           VehicleDashboardStats(
             stats = stats,
             lastOilChangeMiles = lastOilChangeMiles,
-            onStatsClick = { showMpgChart = true }
+            tireSetMileage = tireSetMileage,
+            mountedTireSetId = mountedTireSetId,
+            onStatsClick = { showMpgChart = true },
+            onAddTireSet = {
+              editingTireSet = null
+              showTireSetEditor = true
+            },
+            onEditTireSet = { set ->
+              editingTireSet = set
+              showTireSetEditor = true
+            }
           )
 
           Spacer(modifier = Modifier.height(16.dp))
@@ -438,21 +446,10 @@ fun VehicleTrackerApp(
                   vehicleId = activeVehicle.id,
                   maintenance = maintenanceList,
                   tireSetMileage = tireSetMileage,
-                  mountedTireSetId = mountedTireSetId,
-                  oilChangeLabel = oilChangeLabel,
-                  oilChangeLogged = oilChangeLogged,
                   onEditMaintenance = { record ->
                     editingMaintenance = record
                     preferredTireSetId = null
                     showMaintenanceEditor = true
-                  },
-                  onAddTireSet = {
-                    editingTireSet = null
-                    showTireSetEditor = true
-                  },
-                  onEditTireSet = { set ->
-                    editingTireSet = set
-                    showTireSetEditor = true
                   }
                 )
               }
@@ -998,7 +995,11 @@ fun EmptyGarageState(onAddClick: () -> Unit) {
 fun VehicleDashboardStats(
   stats: VehicleStats,
   lastOilChangeMiles: String,
-  onStatsClick: () -> Unit
+  tireSetMileage: List<TireSetMileage>,
+  mountedTireSetId: Int?,
+  onStatsClick: () -> Unit,
+  onAddTireSet: () -> Unit,
+  onEditTireSet: (TireSet) -> Unit
 ) {
   var expanded by rememberSaveable { mutableStateOf(false) }
   val chevronRotation by animateFloatAsState(
@@ -1148,6 +1149,13 @@ fun VehicleDashboardStats(
               modifier = Modifier.weight(1f)
             )
           }
+
+          TireSetsDashboardSection(
+            mileage = tireSetMileage,
+            mountedTireSetId = mountedTireSetId,
+            onAdd = onAddTireSet,
+            onEdit = onEditTireSet
+          )
         }
       }
     }
