@@ -118,6 +118,10 @@ class AppScreenshotTest {
     composeTestRule.waitUntil(TIMEOUT_MS) { !hasText("Brake pads") }
     composeTestRule.waitUntil(TIMEOUT_MS) { !hasText("5W-30 synthetic", substring = true) }
     captureRoot("maintenance-no-match")
+    composeTestRule.onNodeWithTag("csv_menu_button").performClick()
+    composeTestRule.onNodeWithTag("export_csv_menu_item").performClick()
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("5 service records for this vehicle", substring = true) }
+    composeTestRule.waitUntil(TIMEOUT_MS) { hasText("toyota-camry-2021-service-logs.csv") }
   }
 
   @Test

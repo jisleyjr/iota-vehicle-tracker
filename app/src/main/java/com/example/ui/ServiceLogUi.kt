@@ -103,6 +103,7 @@ fun ServiceLogsContent(
     vehicleId: Int?,
     maintenance: List<Maintenance>,
     tireSetMileage: List<TireSetMileage>,
+    onExportClick: () -> Unit,
     onEditMaintenance: (Maintenance) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -136,10 +137,13 @@ fun ServiceLogsContent(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            MaintenanceTypeMenu(
-                selected = typeFilter,
-                onSelect = { typeFilter = it }
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                com.example.CsvActionsButton(maintenance.any { it.vehicleId == vehicleId }, null, onExportClick)
+                MaintenanceTypeMenu(
+                    selected = typeFilter,
+                    onSelect = { typeFilter = it }
+                )
+            }
         }
 
         if (visible.isEmpty()) {

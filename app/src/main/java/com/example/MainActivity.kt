@@ -70,6 +70,7 @@ import com.example.data.model.TireSet
 import com.example.data.model.Vehicle
 import com.example.ui.MaintenanceFormDialog
 import com.example.ui.MaintenanceFormResult
+import com.example.data.csv.ServiceLogCsvWriter
 import com.example.ui.ServiceLogsContent
 import com.example.ui.TireSetsDashboardSection
 import com.example.ui.TireSetFormDialog
@@ -139,10 +140,8 @@ fun VehicleTrackerApp(
   var showMpgChart by remember { mutableStateOf(false) }
   var pendingImport by remember { mutableStateOf(initialPendingImport) }
   var showExportSheet by remember { mutableStateOf(false) }
-  var exportFileName by remember { mutableStateOf("") }
-  var exportCsv by remember { mutableStateOf("") }
-  var exportRowCount by remember { mutableIntStateOf(0) }
-  
+  var export by remember { mutableStateOf<CsvExport?>(null) }
+
   // Tab Selection State
   var activeTab by remember { mutableStateOf(0) } // 0 = Fill-ups, 1 = Maintenance
 
@@ -189,8 +188,9 @@ fun VehicleTrackerApp(
     contract = ActivityResultContracts.CreateDocument("text/csv")
   ) { uri ->
     if (uri == null) return@rememberLauncherForActivityResult
-    val csv = exportCsv
-    val name = exportFileName
+    val payload = export ?: return@rememberLauncherForActivityResult
+    val csv = payload.csv
+    val name = payload.fileName
     try {
       FillUpCsvFiles.writeToUri(context, uri, csv)
       Toast.makeText(context, "Saved $name", Toast.LENGTH_SHORT).show()
@@ -409,9 +409,12 @@ fun VehicleTrackerApp(
                       onImportClick = { csvLauncher.launch("*/*") },
                       onExportClick = {
                         val vehicle = selectedVehicle ?: return@CsvActionsButton
-                        exportFileName = FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model, vehicle.year)
-                        exportCsv = FillUpCsvWriter.write(fillUps)
-                        exportRowCount = fillUps.size
+                        export = CsvExport(
+                          "Export Fill-Ups (CSV)",
+                          FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model, vehicle.year),
+                          FillUpCsvWriter.summaryLabel(fillUps.size),
+                          FillUpCsvWriter.write(fillUps)
+                        )
                         showExportSheet = true
                       }
                     )
@@ -445,6 +448,18 @@ fun VehicleTrackerApp(
                 ServiceLogsContent(
                   vehicleId = activeVehicle.id,
                   maintenance = maintenanceList,
+                  onExportClick = {
+                    val records = maintenanceList.filter { it.vehicleId == activeVehicle.id }
+                    val names = tireSetMileage.associate { it.tireSet.id to it.tireSet.name }
+                    export = CsvExport(
+                      "Export Service Logs (CSV)",
+                      FillUpCsvWriter.suggestedFileName(activeVehicle.make, activeVehicle.model, activeVehicle.year)
+                        .removeSuffix("-fillups.csv") + "-service-logs.csv",
+                      "${records.size} service records for this vehicle · headers: ${ServiceLogCsvWriter.HEADER}",
+                      ServiceLogCsvWriter.write(records, names)
+                    )
+                    showExportSheet = true
+                  },
                   tireSetMileage = tireSetMileage,
                   onEditMaintenance = { record ->
                     editingMaintenance = record
@@ -635,19 +650,21 @@ fun VehicleTrackerApp(
     )
   }
 
-  if (showExportSheet) {
+  val payload = export
+  if (showExportSheet && payload != null) {
     ExportCsvSheet(
-      fileName = exportFileName,
-      rowCount = exportRowCount,
+      title = payload.title,
+      fileName = payload.fileName,
+      summary = payload.summary,
       onDismiss = { showExportSheet = false },
       onSaveToDevice = {
-        val name = exportFileName
+        val name = payload.fileName
         showExportSheet = false
         saveCsvLauncher.launch(name)
       },
       onShare = {
-        val name = exportFileName
-        val csv = exportCsv
+        val name = payload.fileName
+        val csv = payload.csv
         showExportSheet = false
         try {
           context.startActivity(FillUpCsvFiles.shareIntent(context, name, csv))
@@ -663,10 +680,12 @@ fun VehicleTrackerApp(
   }
 }
 
+private data class CsvExport(val title: String, val fileName: String, val summary: String, val csv: String)
+
 @Composable
-private fun CsvActionsButton(
+internal fun CsvActionsButton(
   exportEnabled: Boolean,
-  onImportClick: () -> Unit,
+  onImportClick: (() -> Unit)?,
   onExportClick: () -> Unit
 ) {
   var expanded by remember { mutableStateOf(false) }
@@ -694,9 +713,10 @@ private fun CsvActionsButton(
     ) {
       DropdownMenuItem(
         text = { Text("Import CSV") },
+        enabled = onImportClick != null,
         onClick = {
           expanded = false
-          onImportClick()
+          onImportClick?.invoke()
         },
         leadingIcon = {
           Icon(
