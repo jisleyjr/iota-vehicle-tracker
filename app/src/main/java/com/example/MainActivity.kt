@@ -1,5 +1,8 @@
 package com.example
 
+import com.example.data.csv.ServiceImport
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.app.DatePickerDialog
 import android.content.Context
 import android.net.Uri
@@ -70,6 +73,7 @@ import com.example.data.model.TireSet
 import com.example.data.model.Vehicle
 import com.example.ui.MaintenanceFormDialog
 import com.example.ui.MaintenanceFormResult
+import com.example.data.csv.ServiceLogCsvWriter
 import com.example.ui.ServiceLogsContent
 import com.example.ui.TireSetsDashboardSection
 import com.example.ui.TireSetFormDialog
@@ -106,7 +110,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun VehicleTrackerApp(
   nowMillis: Long = System.currentTimeMillis(),
-  initialPendingImport: PendingCsvImport? = null
+  initialPendingImport: PendingCsvImport? = null,
+  initialServiceImport: Pair<String, ServiceImport>? = null
 ) {
   val context = LocalContext.current
   val db = remember { AppDatabase.getDatabase(context) }
@@ -139,15 +144,68 @@ fun VehicleTrackerApp(
   var showMpgChart by remember { mutableStateOf(false) }
   var pendingImport by remember { mutableStateOf(initialPendingImport) }
   var showExportSheet by remember { mutableStateOf(false) }
-  var exportFileName by remember { mutableStateOf("") }
-  var exportCsv by remember { mutableStateOf("") }
-  var exportRowCount by remember { mutableIntStateOf(0) }
-  
+  var export by remember { mutableStateOf<CsvExport?>(null) }
+
   // Tab Selection State
   var activeTab by remember { mutableStateOf(0) } // 0 = Fill-ups, 1 = Maintenance
 
   val coroutineScope = rememberCoroutineScope()
   val contentResolver = context.contentResolver
+  var serviceDestination by rememberSaveable { mutableStateOf<Int?>(null) }
+  var servicePreview by remember { mutableStateOf(initialServiceImport) }
+  var savingService by remember { mutableStateOf(false) }
+  val servicePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val id = serviceDestination
+    serviceDestination = null
+    if (uri != null && id != null) coroutineScope.launch {
+      try {
+        servicePreview = withContext(Dispatchers.IO) {
+          val text = requireNotNull(contentResolver.openInputStream(uri)) { "Could not open CSV" }
+            .bufferedReader(Charsets.UTF_8).use { it.readText() }
+          csvDisplayName(context, uri) to viewModel.previewServiceImport(id, text)
+        }
+      } catch (error: Exception) {
+        Toast.makeText(context, "Import failed: ${error.message}", Toast.LENGTH_LONG).show()
+      }
+    }
+  }
+  servicePreview?.let { (filename, preview) ->
+    AlertDialog(
+      onDismissRequest = { if (!savingService) servicePreview = null },
+      title = { Text("Import Service Logs (CSV)") },
+      text = {
+        Column {
+          Text("$filename · ${preview.vehicleLabel}")
+          Text("${preview.newCount} new · ${preview.duplicates} duplicates · ${preview.skipped} skipped")
+          LazyColumn {
+            items(preview.rows) { row ->
+              Text("${row.label}\n${row.reason}", Modifier.padding(vertical = 6.dp))
+            }
+          }
+        }
+      },
+      dismissButton = { TextButton(enabled = !savingService, onClick = { servicePreview = null }) { Text("Cancel") } },
+      confirmButton = {
+        TextButton(enabled = !savingService && preview.newCount > 0, onClick = {
+          if (!savingService) {
+            savingService = true
+            coroutineScope.launch {
+              try {
+                val count = viewModel.commitServiceImport(preview)
+                val duplicates = preview.duplicates + preview.newCount - count
+                Toast.makeText(context, "Imported $count service records · $duplicates duplicates · ${preview.skipped} skipped", Toast.LENGTH_LONG).show()
+                servicePreview = null
+              } catch (error: Exception) {
+                Toast.makeText(context, "Import failed: ${error.message}", Toast.LENGTH_LONG).show()
+              } finally {
+                savingService = false
+              }
+            }
+          }
+        }) { Text(com.example.data.csv.importButtonLabel(preview.newCount)) }
+      }
+    )
+  }
   val csvLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.GetContent()
   ) { uri ->
@@ -189,8 +247,9 @@ fun VehicleTrackerApp(
     contract = ActivityResultContracts.CreateDocument("text/csv")
   ) { uri ->
     if (uri == null) return@rememberLauncherForActivityResult
-    val csv = exportCsv
-    val name = exportFileName
+    val payload = export ?: return@rememberLauncherForActivityResult
+    val csv = payload.csv
+    val name = payload.fileName
     try {
       FillUpCsvFiles.writeToUri(context, uri, csv)
       Toast.makeText(context, "Saved $name", Toast.LENGTH_SHORT).show()
@@ -409,9 +468,12 @@ fun VehicleTrackerApp(
                       onImportClick = { csvLauncher.launch("*/*") },
                       onExportClick = {
                         val vehicle = selectedVehicle ?: return@CsvActionsButton
-                        exportFileName = FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model, vehicle.year)
-                        exportCsv = FillUpCsvWriter.write(fillUps)
-                        exportRowCount = fillUps.size
+                        export = CsvExport(
+                          "Export Fill-Ups (CSV)",
+                          FillUpCsvWriter.suggestedFileName(vehicle.make, vehicle.model, vehicle.year),
+                          FillUpCsvWriter.summaryLabel(fillUps.size),
+                          FillUpCsvWriter.write(fillUps)
+                        )
                         showExportSheet = true
                       }
                     )
@@ -444,7 +506,23 @@ fun VehicleTrackerApp(
               1 -> {
                 ServiceLogsContent(
                   vehicleId = activeVehicle.id,
+                  onImportClick = {
+                    serviceDestination = activeVehicle.id
+                    servicePicker.launch("*/*")
+                  },
                   maintenance = maintenanceList,
+                  onExportClick = {
+                    val records = maintenanceList.filter { it.vehicleId == activeVehicle.id }
+                    val names = tireSetMileage.associate { it.tireSet.id to it.tireSet.name }
+                    export = CsvExport(
+                      "Export Service Logs (CSV)",
+                      FillUpCsvWriter.suggestedFileName(activeVehicle.make, activeVehicle.model, activeVehicle.year)
+                        .removeSuffix("-fillups.csv") + "-service-logs.csv",
+                      "${records.size} service records for this vehicle · headers: ${ServiceLogCsvWriter.HEADER}",
+                      ServiceLogCsvWriter.write(records, names)
+                    )
+                    showExportSheet = true
+                  },
                   tireSetMileage = tireSetMileage,
                   onEditMaintenance = { record ->
                     editingMaintenance = record
@@ -635,19 +713,21 @@ fun VehicleTrackerApp(
     )
   }
 
-  if (showExportSheet) {
+  val payload = export
+  if (showExportSheet && payload != null) {
     ExportCsvSheet(
-      fileName = exportFileName,
-      rowCount = exportRowCount,
+      title = payload.title,
+      fileName = payload.fileName,
+      summary = payload.summary,
       onDismiss = { showExportSheet = false },
       onSaveToDevice = {
-        val name = exportFileName
+        val name = payload.fileName
         showExportSheet = false
         saveCsvLauncher.launch(name)
       },
       onShare = {
-        val name = exportFileName
-        val csv = exportCsv
+        val name = payload.fileName
+        val csv = payload.csv
         showExportSheet = false
         try {
           context.startActivity(FillUpCsvFiles.shareIntent(context, name, csv))
@@ -663,10 +743,12 @@ fun VehicleTrackerApp(
   }
 }
 
+private data class CsvExport(val title: String, val fileName: String, val summary: String, val csv: String)
+
 @Composable
-private fun CsvActionsButton(
+internal fun CsvActionsButton(
   exportEnabled: Boolean,
-  onImportClick: () -> Unit,
+  onImportClick: (() -> Unit)?,
   onExportClick: () -> Unit
 ) {
   var expanded by remember { mutableStateOf(false) }
@@ -694,9 +776,10 @@ private fun CsvActionsButton(
     ) {
       DropdownMenuItem(
         text = { Text("Import CSV") },
+        enabled = onImportClick != null,
         onClick = {
           expanded = false
-          onImportClick()
+          onImportClick?.invoke()
         },
         leadingIcon = {
           Icon(

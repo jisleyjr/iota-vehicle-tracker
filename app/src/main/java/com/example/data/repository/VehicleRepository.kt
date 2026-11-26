@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.data.csv.ServiceImport
 import com.example.data.db.VehicleDao
 import com.example.data.model.FillUp
 import com.example.data.model.Maintenance
@@ -8,6 +9,14 @@ import com.example.data.model.Vehicle
 import kotlinx.coroutines.flow.Flow
 
 class VehicleRepository(private val vehicleDao: VehicleDao) {
+    suspend fun previewServiceImport(id: Int, text: String): ServiceImport {
+        val vehicle = requireNotNull(vehicleDao.getVehicleById(id)) { "Destination vehicle was deleted" }
+        return com.example.data.csv.ServiceImportParser.parse(text, vehicle,
+            vehicleDao.getMaintenanceSnapshot(id), vehicleDao.getTireSetSnapshot(id))
+    }
+
+    suspend fun commitServiceImport(preview: ServiceImport) = vehicleDao.commitServiceImport(preview)
+
     val allVehicles: Flow<List<Vehicle>> = vehicleDao.getAllVehicles()
 
     suspend fun getVehicleById(vehicleId: Int): Vehicle? {

@@ -1,6 +1,6 @@
 # IOTA Vehicle Tracker
 
-A fully local Android app for tracking vehicles, gas fill-ups, fuel efficiency, expenses, and maintenance. Logs are stored on the device with Room. The UI is Jetpack Compose.
+An Android app for tracking vehicles, gas fill-ups, fuel efficiency, expenses, and maintenance. The app works offline and stores logs in a Room database on your device. If Android cloud backup is enabled on your device, the backup may include those logs. The UI is Jetpack Compose.
 
 ## Prerequisites
 
@@ -151,6 +151,6 @@ Captured from the Compose UI with Roborazzi. Descriptions and the regenerate com
 | --- | --- |
 | <img src="docs/screenshots/delete-vehicle-confirm.png" alt="Delete vehicle confirmation" width="240" /> | <img src="docs/screenshots/csv-menu.png" alt="CSV menu with Import and Export" width="240" /> |
 
-| Export fill-ups |
-| --- |
-| <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> |
+| Export fill-ups | Import service logs |
+| --- | --- |
+| <img src="docs/screenshots/export-csv-sheet.png" alt="Export CSV sheet" width="240" /> | <img src="docs/screenshots/service-import-preview.png" alt="Service CSV import with new, duplicate, and skipped records" width="240" /> |

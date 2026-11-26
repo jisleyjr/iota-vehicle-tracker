@@ -33,13 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.csv.FillUpCsvWriter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExportCsvSheet(
   fileName: String,
-  rowCount: Int,
+  title: String,
+  summary: String,
   onDismiss: () -> Unit,
   onSaveToDevice: () -> Unit,
   onShare: () -> Unit
@@ -59,7 +59,7 @@ fun ExportCsvSheet(
         .testTag("export_csv_sheet")
     ) {
       Text(
-        text = "Export Fill-Ups (CSV)",
+        text = title,
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
@@ -67,7 +67,7 @@ fun ExportCsvSheet(
       Spacer(modifier = Modifier.height(16.dp))
       FileSummaryCard(
         fileName = fileName,
-        summary = FillUpCsvWriter.summaryLabel(rowCount)
+        summary = summary
       )
       Spacer(modifier = Modifier.height(8.dp))
       ExportActionRow(

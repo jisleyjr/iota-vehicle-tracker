@@ -1,0 +1,7 @@
+date,type,title,description,cost,odometer,hours,tire_set
+2026-11-20T00:00:00.000Z,OIL_CHANGE,Oil and filter,5W-30 synthetic,59.95,45200,0.5,
+2026-10-02T00:00:00.000Z,REPAIR,Replace front brake pads,Pads and rotors,385.75,44010,2.25,
+2026-08-12T00:00:00.000Z,TIRE_ROTATION,Rotate tires,,0,42100,,
+2026-07-01T00:00:00.000Z,OTHER,Replace cabin air filter,,18.5,41350,,
+1970-01-01T00:00:00.123Z,TIRE_SWAP,"Swap, winter","Line ""one""
+Line two",0,1200.25,,"Neige, été"
