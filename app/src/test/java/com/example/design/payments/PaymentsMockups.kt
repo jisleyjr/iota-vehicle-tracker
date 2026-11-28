@@ -108,6 +108,28 @@ private data class DesignMenuItem(
   val dividerBefore: Boolean = false
 )
 
+private enum class SimplePaymentType(val label: String, val chip: String) {
+  PURCHASE("Purchase", "Purchase"),
+  DOWN_PAYMENT("Down payment", "Down"),
+  PAYMENT("Payment", "Payment"),
+  OTHER("Other", "Other")
+}
+
+private data class SimplePayment(
+  val type: SimplePaymentType,
+  val amount: Double,
+  val dateLabel: String,
+  val note: String
+)
+
+private val simplePayments = listOf(
+  SimplePayment(SimplePaymentType.DOWN_PAYMENT, 3_000.0, "03/12/2024", "Due at signing"),
+  SimplePayment(SimplePaymentType.PAYMENT, 498.0, "11/01/2026", ""),
+  SimplePayment(SimplePaymentType.PAYMENT, 498.0, "10/01/2026", ""),
+  SimplePayment(SimplePaymentType.PAYMENT, 498.0, "09/01/2026", ""),
+  SimplePayment(SimplePaymentType.PAYMENT, 498.0, "08/01/2026", "")
+)
+
 private data class PillTab(
   val label: String,
   val icon: ImageVector,
@@ -170,7 +192,7 @@ internal fun PaymentsDesignScreen(
       GarageRow(menuOpen = option == DesignOption.Segmented && overlay == DesignOverlay.HideMenu)
       Spacer(modifier = Modifier.height(16.dp))
       if (option == DesignOption.ExpandedDashboard && dashboardExpanded) {
-        OwnershipExpandedDashboard(paidOff = paymentsHidden)
+        OwnershipExpandedDashboard()
       } else {
         VehicleDashboardStats(
           stats = camryDashboardStats,
@@ -205,7 +227,8 @@ internal fun PaymentsDesignScreen(
         if (showPayments) {
           PaymentsBody(
             option = option,
-            menuOpen = option == DesignOption.TabRow && overlay == DesignOverlay.HideMenu
+            menuOpen = (option == DesignOption.TabRow || option == DesignOption.ExpandedDashboard) &&
+              overlay == DesignOverlay.HideMenu
           )
         } else {
           FuelBody()
@@ -215,10 +238,18 @@ internal fun PaymentsDesignScreen(
   }
 
   if (overlay == DesignOverlay.AddPayment || overlay == DesignOverlay.EditPayment) {
-    PaymentFormDialog(editing = overlay == DesignOverlay.EditPayment, emphasizeDownPayment = option == DesignOption.DashboardTiles && overlay == DesignOverlay.AddPayment)
+    if (option == DesignOption.ExpandedDashboard) {
+      SimplePaymentFormDialog()
+    } else {
+      PaymentFormDialog(editing = overlay == DesignOverlay.EditPayment, emphasizeDownPayment = option == DesignOption.DashboardTiles && overlay == DesignOverlay.AddPayment)
+    }
   }
   if (overlay == DesignOverlay.HideConfirm) {
-    HidePaymentsConfirm(option = option)
+    if (option == DesignOption.ExpandedDashboard) {
+      HidePaymentsTabConfirm()
+    } else {
+      HidePaymentsConfirm(option = option)
+    }
   }
   if (overlay == DesignOverlay.VehicleDetails) {
     VehicleDetailsDialog()
@@ -263,7 +294,7 @@ internal fun CostOfOwnershipBreakdownScreen() {
         fontWeight = FontWeight.Bold
       )
       Text(
-        text = "CAM4219 · loan in progress",
+        text = "CAM4219",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 13.sp
       )
@@ -310,8 +341,8 @@ internal fun CostOfOwnershipBreakdownScreen() {
       Spacer(modifier = Modifier.height(10.dp))
       BreakdownRow(
         color = MaterialTheme.colorScheme.primary,
-        title = "Purchase payments",
-        detail = "Down payment ${money(CamryOwnership.downPayment.amount)} · ${CamryOwnership.paymentsLogged} loan payments ${money(CamryOwnership.monthlyAmount * CamryOwnership.paymentsLogged)}",
+        title = "Payments",
+        detail = "Down payment ${money(CamryOwnership.downPayment.amount)} · ${CamryOwnership.paymentsLogged} payments ${money(CamryOwnership.monthlyAmount * CamryOwnership.paymentsLogged)}",
         amount = money(CamryOwnership.cashPaid),
         share = paymentsShare
       )
@@ -329,16 +360,6 @@ internal fun CostOfOwnershipBreakdownScreen() {
         amount = money(CamryOwnership.maintenance),
         share = serviceShare
       )
-      Spacer(modifier = Modifier.height(8.dp))
-      Text(
-        text = "Shown for context",
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary
-      )
-      Spacer(modifier = Modifier.height(4.dp))
-      ContextLine("Agreed price", money(CamryOwnership.agreedPrice), "Not added, because this Camry is tracked as a loan.")
-      ContextLine("Remaining on the schedule", money(CamryOwnership.remaining), "Unpaid installments are not in the total yet.")
       Spacer(modifier = Modifier.height(8.dp))
       Text(
         text = "Miles",
@@ -638,7 +659,7 @@ private fun OptionTabs(option: DesignOption, paymentsHidden: Boolean) {
 }
 
 @Composable
-private fun OwnershipExpandedDashboard(paidOff: Boolean) {
+private fun OwnershipExpandedDashboard() {
   Card(
     modifier = Modifier
       .fillMaxWidth()
@@ -766,8 +787,8 @@ private fun OwnershipExpandedDashboard(paidOff: Boolean) {
             modifier = Modifier.weight(1f)
           )
           MiniDashboardGridCard(
-            title = if (paidOff) "Payments" else "Remaining",
-            value = if (paidOff) "Paid off" else money(CamryOwnership.remaining),
+            title = "Paid to date",
+            value = money(CamryOwnership.cashPaid),
             modifier = Modifier.weight(1f)
           )
         }
@@ -874,7 +895,7 @@ private fun PaymentsBody(option: DesignOption, menuOpen: Boolean) {
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary
       )
-      if (option == DesignOption.TabRow) {
+      if (option == DesignOption.TabRow || option == DesignOption.ExpandedDashboard) {
         Box {
           IconButton(
             onClick = {},
@@ -890,10 +911,17 @@ private fun PaymentsBody(option: DesignOption, menuOpen: Boolean) {
           }
           if (menuOpen) {
             DesignMenu(
-              items = listOf(
-                DesignMenuItem("Cost breakdown", Icons.Filled.Insights),
-                DesignMenuItem("Mark paid off and hide tab", Icons.Outlined.VisibilityOff)
-              ),
+              items = if (option == DesignOption.ExpandedDashboard) {
+                listOf(
+                  DesignMenuItem("Cost breakdown", Icons.Filled.Insights),
+                  DesignMenuItem("Hide Payments tab", Icons.Outlined.VisibilityOff)
+                )
+              } else {
+                listOf(
+                  DesignMenuItem("Cost breakdown", Icons.Filled.Insights),
+                  DesignMenuItem("Mark paid off and hide tab", Icons.Outlined.VisibilityOff)
+                )
+              },
               modifier = Modifier
                 .overlayAt(x = (-276).dp, y = 28.dp)
                 .testTag("hide_payments_menu")
@@ -909,33 +937,39 @@ private fun PaymentsBody(option: DesignOption, menuOpen: Boolean) {
         .weight(1f)
         .fillMaxWidth()
     ) {
-      if (option == DesignOption.TabRow) {
-        item { LoanProgressCard() }
-      }
-      if (option == DesignOption.Segmented) {
-        item { SegmentedBalanceBanner() }
-      }
-      item {
-        Text(
-          text = "At purchase",
-          fontSize = 12.sp,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.padding(top = 4.dp)
-        )
-      }
-      item { PaymentRow(CamryOwnership.downPayment) }
-      item {
-        Text(
-          text = "Installments",
-          fontSize = 12.sp,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.padding(top = 4.dp)
-        )
-      }
-      items(CamryOwnership.installments) { payment ->
-        PaymentRow(payment)
+      if (option == DesignOption.ExpandedDashboard) {
+        items(simplePayments) { payment ->
+          SimplePaymentRow(payment)
+        }
+      } else {
+        if (option == DesignOption.TabRow) {
+          item { LoanProgressCard() }
+        }
+        if (option == DesignOption.Segmented) {
+          item { SegmentedBalanceBanner() }
+        }
+        item {
+          Text(
+            text = "At purchase",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+          )
+        }
+        item { PaymentRow(CamryOwnership.downPayment) }
+        item {
+          Text(
+            text = "Installments",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+          )
+        }
+        items(CamryOwnership.installments) { payment ->
+          PaymentRow(payment)
+        }
       }
     }
   }
@@ -1137,6 +1171,93 @@ private fun PaymentRow(payment: MockPayment) {
 }
 
 @Composable
+private fun SimplePaymentRow(payment: SimplePayment) {
+  val accent = if (payment.type == SimplePaymentType.DOWN_PAYMENT || payment.type == SimplePaymentType.PURCHASE) {
+    EmeraldSuccess
+  } else {
+    MaterialTheme.colorScheme.primary
+  }
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+    shape = RoundedCornerShape(12.dp)
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(14.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Box(
+        modifier = Modifier
+          .size(54.dp)
+          .clip(RoundedCornerShape(10.dp))
+          .background(accent.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center
+      ) {
+        Icon(
+          imageVector = Icons.Outlined.Payments,
+          contentDescription = null,
+          tint = accent,
+          modifier = Modifier.size(26.dp)
+        )
+      }
+      Spacer(modifier = Modifier.width(14.dp))
+      Column(modifier = Modifier.weight(1f)) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text(
+            text = payment.type.label,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+          )
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(
+            text = payment.type.chip,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            modifier = Modifier
+              .clip(RoundedCornerShape(6.dp))
+              .background(accent.copy(alpha = 0.12f))
+              .padding(horizontal = 6.dp, vertical = 2.dp)
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = money(payment.amount),
+            fontWeight = FontWeight.Black,
+            fontSize = 15.sp,
+            color = accent,
+            maxLines = 1
+          )
+          TextButton(onClick = {}, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+            Text(text = "Edit", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+          }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        val detail = listOfNotNull(
+          payment.dateLabel,
+          payment.note.takeIf { it.isNotBlank() }
+        ).joinToString(" · ")
+        Text(
+          text = detail,
+          fontSize = 11.sp,
+          fontWeight = FontWeight.Medium,
+          color = MaterialTheme.colorScheme.outline,
+          maxLines = 1
+        )
+      }
+    }
+  }
+}
+
+@Composable
 private fun DesignMenu(items: List<DesignMenuItem>, modifier: Modifier = Modifier) {
   Card(
     modifier = modifier.width(308.dp),
@@ -1275,6 +1396,84 @@ private fun PaymentFormDialog(editing: Boolean, emphasizeDownPayment: Boolean) {
       }
     }
   }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SimplePaymentFormDialog() {
+  CustomDialogEnvelope(
+    title = "Log Payment",
+    subtitle = "2021 Toyota Camry",
+    onDismiss = {},
+    onSave = {}
+  ) {
+    Text(text = "Type", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+    Spacer(modifier = Modifier.height(6.dp))
+    FlowRow(
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+      verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+      SimplePaymentType.entries.forEach { type ->
+        FilterChip(
+          selected = type == SimplePaymentType.PAYMENT,
+          onClick = {},
+          label = { Text(type.label) }
+        )
+      }
+    }
+    Spacer(modifier = Modifier.height(6.dp))
+    Text(
+      text = "A logged payment. Add rows until you are done. There is no balance to track.",
+      fontSize = 12.sp,
+      color = MaterialTheme.colorScheme.outline
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+      value = "498.00",
+      onValueChange = {},
+      label = { Text("Amount ($)") },
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+      singleLine = true,
+      modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+      value = "",
+      onValueChange = {},
+      label = { Text("Note (optional)") },
+      singleLine = true,
+      modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Text(text = "Date: 11/13/2026", fontWeight = FontWeight.Bold)
+      TextButton(onClick = {}) {
+        Icon(imageVector = Icons.Filled.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text("Change Date")
+      }
+    }
+  }
+}
+
+@Composable
+private fun HidePaymentsTabConfirm() {
+  AlertDialog(
+    onDismissRequest = {},
+    modifier = Modifier.testTag("hide_payments_confirm"),
+    title = { Text("Hide Payments tab?") },
+    text = { Text("Your logged payments stay in total cost.") },
+    confirmButton = {
+      Button(onClick = {}) { Text("Hide tab", fontWeight = FontWeight.Bold) }
+    },
+    dismissButton = {
+      TextButton(onClick = {}) { Text("Cancel") }
+    }
+  )
 }
 
 @Composable

@@ -195,9 +195,12 @@ class PaymentsMockupScreenshotTest {
     }
     assertShown("Cost of ownership")
     assertShown("31.9¢")
-    assertShown("Purchase payments")
+    assertShown("Payments")
     assertShown("Fuel")
     assertShown("Maintenance")
+    assertShown("$5,543.58")
+    assertAbsent("Agreed price")
+    assertAbsent("Remaining")
     capture("total-cost-breakdown")
   }
 
@@ -211,6 +214,8 @@ class PaymentsMockupScreenshotTest {
     assertAbsent("31.9¢")
     assertAbsent("$5,543.58")
     assertAbsent("$21,912.00")
+    assertAbsent("Loan")
+    assertAbsent("Remaining")
     capture("option-d-collapsed")
   }
 
@@ -223,8 +228,11 @@ class PaymentsMockupScreenshotTest {
     assertShown("TOTAL COST")
     assertShown("$5,543.58")
     assertShown("31.9¢")
-    assertShown("REMAINING")
-    assertShown("$21,912.00")
+    assertShown("PAID TO DATE")
+    assertShown("$4,992.00")
+    assertAbsent("REMAINING")
+    assertAbsent("$21,912.00")
+    assertAbsent("Paid off")
     assertShown("Tire sets")
     assertShown("Summer")
     assertShown("Winter")
@@ -238,7 +246,10 @@ class PaymentsMockupScreenshotTest {
     assertShown("TOTAL COST")
     assertShown("$5,543.58")
     assertShown("31.9¢")
-    assertShown("Paid off")
+    assertShown("PAID TO DATE")
+    assertShown("$4,992.00")
+    assertAbsent("Paid off")
+    assertAbsent("REMAINING")
     assertShown("Gas Fill-ups")
     assertShown("Service Logs")
     assertAbsent("$21,912.00")
@@ -257,7 +268,36 @@ class PaymentsMockupScreenshotTest {
     assertAbsent("$5,543.58")
     assertAbsent("Paid off")
     assertAbsent("Payments")
+    assertAbsent("Paid off")
+    assertAbsent("PAID TO DATE")
     capture("option-d-payments-hidden-collapsed")
+  }
+
+  @Test
+  fun optionDAddPayment() {
+    show(DesignOption.ExpandedDashboard, overlay = DesignOverlay.AddPayment)
+    assertShown("Log Payment")
+    assertShown("Purchase")
+    assertShown("Down payment")
+    assertShown("Payment")
+    assertShown("Other")
+    assertShown("Amount ($)")
+    assertShown("Note (optional)")
+    assertShown("Date: 11/13/2026")
+    assertAbsent("Odometer")
+    assertAbsent("Loan")
+    assertAbsent("Lease")
+    captureDialog("option-d-add-payment")
+  }
+
+  @Test
+  fun optionDHideConfirm() {
+    show(DesignOption.ExpandedDashboard, overlay = DesignOverlay.HideConfirm)
+    assertShown("Hide Payments tab?")
+    assertShown("Your logged payments stay in total cost.")
+    assertAbsent("paid off")
+    assertAbsent("Paid off")
+    captureDialog("option-d-hide-confirm")
   }
 
   private fun show(
