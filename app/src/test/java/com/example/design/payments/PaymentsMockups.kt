@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Insights
@@ -71,6 +72,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
@@ -91,10 +93,11 @@ import com.example.MiniDashboardGridCard
 import com.example.TabSegmentControl
 import com.example.VehicleDashboardStats
 import com.example.VehicleGarageCard
+import com.example.ui.TireSetsDashboardSection
 import com.example.ui.theme.EmeraldSuccess
 import java.util.Locale
 
-internal enum class DesignOption { TabRow, Segmented, DashboardTiles }
+internal enum class DesignOption { TabRow, Segmented, DashboardTiles, ExpandedDashboard }
 
 internal enum class DesignOverlay { None, AddPayment, EditPayment, HideMenu, HideConfirm, VehicleDetails }
 
@@ -120,7 +123,8 @@ private data class PillTab(
 internal fun PaymentsDesignScreen(
   option: DesignOption,
   paymentsHidden: Boolean = false,
-  overlay: DesignOverlay = DesignOverlay.None
+  overlay: DesignOverlay = DesignOverlay.None,
+  dashboardExpanded: Boolean = false
 ) {
   val showPayments = !paymentsHidden
   val fabLabel = if (showPayments && overlay != DesignOverlay.None) {
@@ -165,15 +169,19 @@ internal fun PaymentsDesignScreen(
       )
       GarageRow(menuOpen = option == DesignOption.Segmented && overlay == DesignOverlay.HideMenu)
       Spacer(modifier = Modifier.height(16.dp))
-      VehicleDashboardStats(
-        stats = camryDashboardStats,
-        lastOilChangeMiles = "2399",
-        tireSetMileage = emptyList(),
-        mountedTireSetId = null,
-        onStatsClick = {},
-        onAddTireSet = {},
-        onEditTireSet = {}
-      )
+      if (option == DesignOption.ExpandedDashboard && dashboardExpanded) {
+        OwnershipExpandedDashboard(paidOff = paymentsHidden)
+      } else {
+        VehicleDashboardStats(
+          stats = camryDashboardStats,
+          lastOilChangeMiles = "2399",
+          tireSetMileage = emptyList(),
+          mountedTireSetId = null,
+          onStatsClick = {},
+          onAddTireSet = {},
+          onEditTireSet = {}
+        )
+      }
       if (option == DesignOption.TabRow) {
         Spacer(modifier = Modifier.height(12.dp))
         CostPerMileStrip()
@@ -612,7 +620,7 @@ private fun OptionTabs(option: DesignOption, paymentsHidden: Boolean) {
         }
       }
     }
-    DesignOption.DashboardTiles -> {
+    DesignOption.DashboardTiles, DesignOption.ExpandedDashboard -> {
       if (paymentsHidden) {
         TabSegmentControl(selectedTab = 0, onTabSelected = {})
       } else {
@@ -627,6 +635,177 @@ private fun OptionTabs(option: DesignOption, paymentsHidden: Boolean) {
       }
     }
   }
+}
+
+@Composable
+private fun OwnershipExpandedDashboard(paidOff: Boolean) {
+  Card(
+    modifier = Modifier
+      .fillMaxWidth()
+      .testTag("ownership_expanded_dashboard"),
+    shape = RoundedCornerShape(28.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+  ) {
+    Column(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(20.dp)
+    ) {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Bottom
+      ) {
+        Column(modifier = Modifier.weight(1f)) {
+          ExpandedStatLabel("Efficiency")
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+          ) {
+            Icon(
+              imageVector = Icons.Filled.ChevronRight,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier
+                .size(28.dp)
+                .rotate(90f)
+            )
+            Text(
+              text = String.format(Locale.US, "%.1f", camryDashboardStats.averageMpg),
+              fontSize = 38.sp,
+              fontWeight = FontWeight.Black,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              softWrap = false
+            )
+            ExpandedStatUnit("MPG")
+          }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+          ExpandedStatLabel("Last Oil Change")
+          Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+          ) {
+            Text(
+              text = "2399",
+              fontSize = 38.sp,
+              fontWeight = FontWeight.Black,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              softWrap = false
+            )
+            ExpandedStatUnit("Miles")
+          }
+        }
+      }
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(top = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+      ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+          Box(
+            modifier = Modifier
+              .size(48.dp)
+              .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+          ) {
+            Icon(
+              imageVector = Icons.Default.Insights,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onPrimary,
+              modifier = Modifier.size(26.dp)
+            )
+          }
+        }
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+          MiniDashboardGridCard(
+            title = "Total Expenditures",
+            value = money(camryDashboardStats.overallTotalSpent),
+            modifier = Modifier.weight(1f)
+          )
+          MiniDashboardGridCard(
+            title = "Current Mileage",
+            value = "${wholeMiles(camryDashboardStats.latestOdometer)} mi",
+            modifier = Modifier.weight(1f)
+          )
+        }
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+          MiniDashboardGridCard(
+            title = "Gas Costs",
+            value = money(CamryOwnership.fuel),
+            modifier = Modifier.weight(1f)
+          )
+          MiniDashboardGridCard(
+            title = "Service Repairs",
+            value = money(CamryOwnership.maintenance),
+            modifier = Modifier.weight(1f)
+          )
+        }
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+          MiniDashboardGridCard(
+            title = "Total cost",
+            value = money(CamryOwnership.totalCost),
+            modifier = Modifier.weight(1f)
+          )
+          MiniDashboardGridCard(
+            title = "Per mile",
+            value = CamryOwnership.centsLabel(),
+            modifier = Modifier.weight(1f)
+          )
+          MiniDashboardGridCard(
+            title = if (paidOff) "Payments" else "Remaining",
+            value = if (paidOff) "Paid off" else money(CamryOwnership.remaining),
+            modifier = Modifier.weight(1f)
+          )
+        }
+        TireSetsDashboardSection(
+          mileage = camryTireMileage,
+          mountedTireSetId = camryMountedTireSetId,
+          onAdd = {},
+          onEdit = {}
+        )
+      }
+    }
+  }
+}
+
+@Composable
+private fun ExpandedStatLabel(text: String) {
+  Text(
+    text = text.uppercase(Locale.US),
+    style = MaterialTheme.typography.labelSmall,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+    letterSpacing = 1.5.sp,
+    maxLines = 2,
+    overflow = TextOverflow.Ellipsis
+  )
+}
+
+@Composable
+private fun ExpandedStatUnit(text: String) {
+  Text(
+    text = text.uppercase(Locale.US),
+    fontSize = 14.sp,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+    maxLines = 1,
+    softWrap = false,
+    modifier = Modifier.padding(bottom = 6.dp)
+  )
 }
 
 @Composable
@@ -1104,6 +1283,7 @@ private fun HidePaymentsConfirm(option: DesignOption) {
     DesignOption.TabRow -> "You can show the tab again from this menu."
     DesignOption.Segmented -> "You can show the tab again from the vehicle menu."
     DesignOption.DashboardTiles -> "You can show the tab again in vehicle details."
+    DesignOption.ExpandedDashboard -> "You can show the tab again from the vehicle menu."
   }
   AlertDialog(
     onDismissRequest = {},

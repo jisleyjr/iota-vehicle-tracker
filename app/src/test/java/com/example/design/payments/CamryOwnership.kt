@@ -1,6 +1,8 @@
 package com.example.design.payments
 
+import com.example.data.maintenance.TireSetMileage
 import com.example.data.model.FillUp
+import com.example.data.model.TireSet
 import com.example.data.model.Vehicle
 import com.example.ui.viewmodel.VehicleStats
 import java.text.NumberFormat
@@ -95,6 +97,19 @@ internal val designCamry = Vehicle(
   model = "Camry",
   year = 2021,
   licensePlate = "CAM4219"
+)
+
+internal const val camryMountedTireSetId = 2
+
+internal val camryTireMileage: List<TireSetMileage> = listOf(
+  TireSetMileage(
+    tireSet = TireSet(id = 1, vehicleId = designCamry.id, name = "Summer", brand = "Michelin", size = "225/45R18"),
+    miles = 14_000.0
+  ),
+  TireSetMileage(
+    tireSet = TireSet(id = camryMountedTireSetId, vehicleId = designCamry.id, name = "Winter", brand = "Blizzak", size = "225/45R18"),
+    miles = 1_399.0
+  )
 )
 
 internal val camryDashboardStats = VehicleStats(

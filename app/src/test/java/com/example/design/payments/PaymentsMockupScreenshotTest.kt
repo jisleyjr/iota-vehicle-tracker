@@ -201,17 +201,78 @@ class PaymentsMockupScreenshotTest {
     capture("total-cost-breakdown")
   }
 
+  @Test
+  fun optionDCollapsed() {
+    show(DesignOption.ExpandedDashboard)
+    assertShown("Payments")
+    assertShown("Down payment")
+    assertShown("Fill-ups")
+    assertShown("Service Logs")
+    assertAbsent("31.9¢")
+    assertAbsent("$5,543.58")
+    assertAbsent("$21,912.00")
+    capture("option-d-collapsed")
+  }
+
+  @Test
+  fun optionDExpanded() {
+    show(DesignOption.ExpandedDashboard, dashboardExpanded = true)
+    assertShown("TOTAL EXPENDITURES")
+    assertShown("GAS COSTS")
+    assertShown("SERVICE REPAIRS")
+    assertShown("TOTAL COST")
+    assertShown("$5,543.58")
+    assertShown("31.9¢")
+    assertShown("REMAINING")
+    assertShown("$21,912.00")
+    assertShown("Tire sets")
+    assertShown("Summer")
+    assertShown("Winter")
+    assertShown("Payments")
+    capture("option-d-expanded")
+  }
+
+  @Test
+  fun optionDPaymentsHiddenExpanded() {
+    show(DesignOption.ExpandedDashboard, paymentsHidden = true, dashboardExpanded = true)
+    assertShown("TOTAL COST")
+    assertShown("$5,543.58")
+    assertShown("31.9¢")
+    assertShown("Paid off")
+    assertShown("Gas Fill-ups")
+    assertShown("Service Logs")
+    assertAbsent("$21,912.00")
+    assertShown("Fuel Logs")
+    capture("option-d-payments-hidden-expanded")
+  }
+
+  @Test
+  fun optionDPaymentsHiddenCollapsed() {
+    show(DesignOption.ExpandedDashboard, paymentsHidden = true)
+    assertShown("Gas Fill-ups")
+    assertShown("Service Logs")
+    assertShown("Fuel Logs")
+    assertShown("11/06/2026")
+    assertAbsent("31.9¢")
+    assertAbsent("$5,543.58")
+    assertAbsent("Paid off")
+    assertAbsent("Payments")
+    capture("option-d-payments-hidden-collapsed")
+  }
+
   private fun show(
     option: DesignOption,
     paymentsHidden: Boolean = false,
-    overlay: DesignOverlay = DesignOverlay.None
+    overlay: DesignOverlay = DesignOverlay.None,
+    dashboardExpanded: Boolean = false
   ) {
     composeTestRule.setContent {
       MyApplicationTheme(darkTheme = false) {
         PaymentsDesignScreen(
           option = option,
           paymentsHidden = paymentsHidden,
-          overlay = overlay
+          overlay = overlay,
+          dashboardExpanded = dashboardExpanded
         )
       }
     }
@@ -221,6 +282,12 @@ class PaymentsMockupScreenshotTest {
   private fun assertShown(text: String) {
     check(composeTestRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()) {
       "Missing text: $text"
+    }
+  }
+
+  private fun assertAbsent(text: String) {
+    check(composeTestRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isEmpty()) {
+      "Unexpected text: $text"
     }
   }
 

@@ -67,13 +67,27 @@ A rose tile row under the efficiency card shows Total cost, Per mile, and Remain
 
 **Costs:** The tile row is on screen even while the owner is logging gas. Remaining balance can be read as money already spent if the label is missed. Term, next due, and the agreed-price note are not on the list. They are on the cost breakdown.
 
+## Option D — figures inside the expandable dashboard
+
+Owner feedback: total cost and cents per mile should stay off the list. They take too much space when they sit above the tabs all the time. Option D puts them in the efficiency card that already expands, using today's filled pill for the tabs. Options A, B, and C stay as drawn.
+
+Collapsed, the card is the current efficiency row (33.1 MPG and 2399 miles since the oil change) and nothing else. The pill is Fill-ups, Service Logs, and Payments. The Payments list is the down payment and the installments. No total, no cents per mile, and no remaining balance on that screen.
+
+Expanded, the card matches the current expanded dashboard: Total Expenditures, Current Mileage, Gas Costs, Service Repairs, and the tire sets. One more row holds Total cost ($5,543.58), Per mile (31.9¢), and Remaining ($21,912.00).
+
+After the Payments tab is hidden, the pill is today's Gas Fill-ups and Service Logs control. Collapsed, the screen is the current fill-up list with no ownership figures. Expanded, the third new tile reads Paid off instead of Remaining. Total cost and cents per mile are still there, because logged payments still count. The list under the card is the fill-ups.
+
+**Works well:** The list stays as compact as today's screen. The owner opens the figures the same way they already open Gas Costs and tire sets. Hiding Payments returns the two-tab pill, and the expanded card still shows that the car is paid off.
+
+**Costs:** Total cost and cents per mile are easy to miss while the card is collapsed. Expanding the card is tall, so the tab row sits at the bottom edge of the screen, under the add button. Remaining and Paid off are a third column, so those labels are narrower than Gas Costs.
+
 ## Cost breakdown
 
 `total-cost-breakdown.png` is the shared detail screen any of the three options can open from Cost breakdown or from the total. It shows 31.9¢ per mile, the stacked split of payments, fuel, and maintenance, the agreed price and the remaining balance kept out of the total, and the odometer math. Payments are about 90% of what this Camry has cost so far, because only four installments and the down payment are logged against 17,399 miles.
 
 ## A direction worth building
 
-Use Option C's tile row so total cost and cents per mile stay visible after the tab is hidden, and so the hidden screen can fall back to today's two-tab pill. Put Option A's loan progress card at the top of the Payments list so remaining, term, and next due have a home. Use Option B's Paid off chip only if the Status tile is too quiet. Keep one confirmation step, and keep logged payments in the total either way.
+Follow Option D. Keep total cost, cents per mile, and remaining (or Paid off) inside the expandable efficiency card, collapsed by default, and leave them off the list. Use today's filled pill, with Payments as the third segment until the owner hides it. Options A, B, and C keep a summary on the list; that is the approach the owner set aside because it takes too much space. A loan progress card from Option A can still sit at the top of the Payments list if term and next due need a home there. Keep one confirmation step, and keep logged payments in the total either way.
 
 ## Images
 
@@ -94,4 +108,8 @@ Use Option C's tile row so total cost and cents per mile stay visible after the 
 | `option-c-vehicle-details.png` | Option C. Vehicle details for the Camry, with Show Payments tab on and Mark paid off and hide tab. |
 | `option-c-hide-payments-confirm.png` | Option C. The hide confirmation, pointing back to vehicle details. |
 | `option-c-payments-hidden.png` | Option C after hiding. Tiles still show $5,543.58 and 31.9¢, the third tile reads Paid off, and the tabs are the current Gas Fill-ups and Service Logs pill. |
+| `option-d-collapsed.png` | Option D collapsed. Filled pill with Payments selected and the payment list. The efficiency card stays on MPG and last oil change. No total, cents per mile, or remaining balance. |
+| `option-d-expanded.png` | Option D with the dashboard expanded. Existing expenditure tiles and tire sets, plus Total cost $5,543.58, Per mile 31.9¢, and Remaining $21,912.00. |
+| `option-d-payments-hidden-expanded.png` | Option D after hiding Payments, dashboard expanded. Two tabs, and the third new tile reads Paid off beside total cost and 31.9¢. |
+| `option-d-payments-hidden-collapsed.png` | Option D after hiding Payments, dashboard collapsed. Today's two-tab fill-up screen, with no ownership figures. |
 | `total-cost-breakdown.png` | Cost of ownership for the Camry: 31.9¢ per mile, payments, fuel, maintenance, the amounts left out of the total, and the miles. |
